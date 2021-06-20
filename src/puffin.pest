@@ -30,7 +30,7 @@ exp = {
 infix = { term ~ (op ~ term)+ }
 
 // term: ordered by precedence and number of tokens consumed
-term = _{
+term = {
     "(" ~ exp ~ ")" |
     unop_use |
     function |
@@ -46,8 +46,8 @@ term = _{
 num = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 
 // arrays
-array_init = { "[" ~ exp ~ "]" }
 array_index = { name ~ "[" ~ exp ~ "]" }
+array_init = { "[" ~ exp ~ "]" }
 
 unop_use = { unop ~ term }
 
