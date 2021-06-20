@@ -1,0 +1,107 @@
+// global rules, implict whitespace, and comments
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
+
+// names: start with letter, followed by alphanumeric or _'s
+name = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+// program: 0 or more statements, taking the whole file
+program = { SOI ~ statement* ~ EOI }
+
+// statement: returns, assigns, expressions, or nests
+statement = {
+    return_statment ~ ";" |
+    assign_statment ~ ";" |
+    exp ~ ";" |
+    nest
+}
+
+return_statment = { "return" ~ exp }
+assign_statment = { exp ~ "=" ~ exp }
+
+// expression: parenthesized expression, infix expression, or single term
+exp = {
+    "(" ~ exp ~ ")" |
+    infix |
+    term 
+}
+
+// infix operator usage: term followed by 1 or more operators and terms
+infix = { term ~ (op ~ term)+ }
+
+// term: ordered by precedence and number of tokens consumed
+term = _{
+    "(" ~ exp ~ ")" |
+    unop_use |
+    function |
+    function_call |
+    array_index |
+    array_init |
+    name |
+    num |
+    string
+}
+
+// numerical literal
+num = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+
+// arrays
+array_init = { "[" ~ exp ~ "]" }
+array_index = { name ~ "[" ~ exp ~ "]" }
+
+unop_use = { unop ~ term }
+
+string = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+
+// function definition, "fn" followed by 0 or more arg names followed by function body
+function = { "fn" ~ "(" ~ args ~ ")" ~ block }
+    function_call = { name ~ "(" ~ exps ~ ")" }
+    args = { name ~ "," ~ args | name | "" }
+    exps = { exp ~ "," ~ exps | (exp) | "" }
+
+block = { "{" ~ statement* ~ "}"}
+
+// nest: conditionals or loops
+nest = {
+    condnest |
+    loopnest
+}
+
+    // conditionals: ifelse or if
+    condnest = {
+        if_else_block |
+        if_block
+    }
+        if_block = { ("if" ~ "(" ~ exp ~ ")" ~ block) }
+        if_else_block = { ("if" ~ "(" ~ exp ~ ")" ~ block ~ "else" ~ block) }
+
+    // loops: while or for-loop
+    loopnest = {
+        while_block |
+        for_block
+    }
+
+while_block = { ("while" ~ exp ~ block) }
+for_block = { ("for" ~ "(" ~ statement ~ exp ~ ";" ~ (assign_statment | exp) ~ ")" ~ block) }
+
+// ordered from highest to lowest precedence
+op = {
+    "*" |
+    "%" |
+    "/" |
+    "+" |
+    "-" |
+    "<" |
+    ">" |
+    "<=" |
+    ">=" |
+    "==" |
+    "!=" |
+    "&&" |
+    "||" 
+}
+
+unop = {
+    "!" |
+    "-"
+}
