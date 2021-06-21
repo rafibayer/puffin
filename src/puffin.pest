@@ -47,6 +47,7 @@ num = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 
 // arrays
 array_index = { name ~ "[" ~ exp ~ "]" }
+    // subscriptable = { name | function_call | ("(" ~ exp ~ ")")}
 array_init = { "[" ~ exp ~ "]" }
 
 unop_use = { unop ~ term }
@@ -56,6 +57,7 @@ string = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 // function definition, "fn" followed by 0 or more arg names followed by function body
 function = { "fn" ~ "(" ~ args ~ ")" ~ block }
     function_call = { name ~ "(" ~ exps ~ ")" }
+        //callable = { name | ("(" ~ exp ~ ")") }
     args = { name ~ "," ~ args | name | "" }
     exps = { exp ~ "," ~ exps | exp | "" }
 

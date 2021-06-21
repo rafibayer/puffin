@@ -1,15 +1,15 @@
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Program {
     pub program: Vec<Statement>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Statement {
     pub statement: StatementKind
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum StatementKind {
     Return(Exp),
     Assign{lhs: Exp, rhs: Exp},
@@ -17,24 +17,24 @@ pub enum StatementKind {
     Nest(NestKind)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Exp {
     pub exp: ExpKind
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ExpKind {
     Paren(Box<Exp>),
     Infix{term: Term, op_terms: Vec<(OpKind, Term)>},
     Term(Term)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Term {
     pub term: TermKind
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TermKind {
     Paren(Box<Exp>),
     UnopUse{unop: UnopKind, term: Box<Term>},
@@ -47,36 +47,36 @@ pub enum TermKind {
     String(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Block {
     pub block: Vec<Statement>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Nest {
     nest: NestKind
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum NestKind {
     CondNest(CondNestKind),
     LoopNest(LoopNestKind)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum CondNestKind {
     IfElse{cond: Exp, then: Block, or_else: Block},
     If{cond: Exp, then: Block},
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LoopNestKind {
     While{cond: Exp, block: Block},
     // todo: adv could be an expression too?
     For{init: Box<Statement>, cond: Exp, adv: Box<Statement>, block: Block}
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum OpKind {
     Mul,
     Mod,
@@ -93,7 +93,7 @@ pub enum OpKind {
     Or
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UnopKind {
     Not,
     Neg,

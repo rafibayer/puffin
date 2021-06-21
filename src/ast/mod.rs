@@ -1,5 +1,4 @@
 // todo: remove
-#![feature(track_caller)]
 
 use crate::{PuffinParser, Rule};
 use pest::iterators::{Pair, Pairs};
@@ -285,7 +284,6 @@ fn build_args(args: Pair<Rule>) -> Result<Vec<String>, ASTError> {
         .as_str()
         .split(",")
         .map(str::trim)
-
         .map(str::to_string)
         .collect();
     if &split[0] == "" {
@@ -350,6 +348,9 @@ fn build_exps(exps: Pair<Rule>) -> Result<Vec<Exp>, ASTError> {
         }
     }
     */
+    // we essentially need to flatten this structure down to:
+    // [1, 2, 3, 4, 5]
+
 
     // for multiple args, we consume the first (a), and traverse down (b)
     while children.len() > 1 {

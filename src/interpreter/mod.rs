@@ -1,11 +1,13 @@
-use crate::{PuffinParser, Rule, Parser};
+use crate::ast::node;
+use value::{Value, Environment};
 
-mod value;
+pub mod value;
 
-pub struct InterpreterError {
-    pub pos: usize,
-    pub msg: &'static str,
+pub enum InterpreterError {
+    UnboundName(String)
 }
 
 
-// fn eval_num(num: &str, )
+pub fn eval(program: node::Program) -> Result<Value, InterpreterError> {
+    todo!()
+}
