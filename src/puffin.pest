@@ -21,9 +21,9 @@ assign_statment = { exp ~ "=" ~ exp }
 
 // expression: parenthesized expression, infix expression, or single term
 exp = {
-    "(" ~ exp ~ ")" |
     infix |
-    term 
+    term |
+    "(" ~ exp ~ ")" 
 }
 
 // infix operator usage: term followed by 1 or more operators and terms
@@ -31,7 +31,6 @@ infix = { term ~ (op ~ term)+ }
 
 // term: ordered by precedence and number of tokens consumed
 term = {
-    "(" ~ exp ~ ")" |
     unop_use |
     function |
     array_index |
@@ -39,15 +38,16 @@ term = {
     function_call |
     name |
     num |
-    string
+    string |
+    "(" ~ exp ~ ")" 
 }
 
 // numerical literal
 num = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 
 // arrays
-array_index = { name ~ "[" ~ exp ~ "]" }
-    subscriptable = { name | function_call | ("(" ~ exp ~ ")")}
+array_index = { subscriptable ~ "[" ~ exps ~ "]" }
+    subscriptable = { ("(" ~ exp ~ ")") | function_call | name }
 array_init = { "[" ~ exp ~ "]" }
 
 unop_use = { unop ~ term }
@@ -56,8 +56,8 @@ string = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 
 // function definition, "fn" followed by 0 or more arg names followed by function body
 function = { "fn" ~ "(" ~ args ~ ")" ~ block }
-    function_call = { name ~ "(" ~ exps ~ ")" }
-        //callable = { name | ("(" ~ exp ~ ")") }
+    function_call = { callable ~ "(" ~ exps ~ ")" }
+        callable = { ("(" ~ exp ~ ")") | name }
     args = { name ~ "," ~ args | name | "" }
     exps = { exp ~ "," ~ exps | exp | "" }
 
@@ -74,6 +74,7 @@ nest = {
         if_else_block |
         if_block
     }
+    
         if_block = { ("if" ~ "(" ~ exp ~ ")" ~ block) }
         if_else_block = { ("if" ~ "(" ~ exp ~ ")" ~ block ~ "else" ~ block) }
 
@@ -83,8 +84,8 @@ nest = {
         for_block
     }
 
-while_block = { ("while" ~ exp ~ block) }
-for_block = { ("for" ~ "(" ~ statement ~ exp ~ ";" ~ (assign_statment | exp) ~ ")" ~ block) }
+        while_block = { ("while" ~ exp ~ block) }
+        for_block = { ("for" ~ "(" ~ statement ~ exp ~ ";" ~ (assign_statment | exp) ~ ")" ~ block) }
 
 // ordered from highest to lowest precedence
 op = {

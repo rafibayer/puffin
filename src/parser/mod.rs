@@ -127,6 +127,9 @@ mod test {
             r"arr[5+5]",
             r"arr[arr[1]]",
             r"arr[call(a, b, x[55]) + 123]",
+            r"arr[call(a, b, x[55]), 123]",
+            r"arr[a, b + 123]",
+            r"arr[a , b, c]",
         ];
 
         for test in tests {

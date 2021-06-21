@@ -372,12 +372,12 @@ fn build_array_index(array_index: Pair<Rule>) -> Result<Term, ASTError> {
     let mut children: Vec<Pair<Rule>> = array_index.into_inner().collect();
     expect_children(2, children.len())?;
     let name = build_name(children.remove(0))?;
-    let exp = build_exp(children.remove(0))?;
+    let exps = build_exps(children.remove(0))?;
 
     Ok(Term {
         term: TermKind::ArrayIndex {
             name: Box::new(name),
-            exp: Box::new(exp),
+            exps: exps,
         },
     })
 }
