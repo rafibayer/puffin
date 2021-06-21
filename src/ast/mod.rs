@@ -84,6 +84,7 @@ fn build_return(return_statement: Pair<Rule>) -> Result<Statement, ASTError> {
     }
 }
 
+// rule: assign_statement
 fn build_assign(assign_statement: Pair<Rule>) -> Result<Statement, ASTError> {
     let mut children: Vec<Pair<Rule>> = assign_statement.into_inner().collect();
     expect_children(2, children.len())?;
@@ -110,6 +111,7 @@ fn build_nest(nest: Pair<Rule>) -> Result<Statement, ASTError> {
     }
 }
 
+// rule: condnest
 fn build_cond(condnest: Pair<Rule>) -> Result<Statement, ASTError> {
     let mut children: Vec<Pair<Rule>> = condnest.into_inner().collect();
     expect_children(1, children.len())?;
@@ -145,6 +147,7 @@ fn build_cond(condnest: Pair<Rule>) -> Result<Statement, ASTError> {
     }
 }
 
+// rule: loopnest
 fn build_loop(loopnest: Pair<Rule>) -> Result<Statement, ASTError> {
     let mut children: Vec<Pair<Rule>> = loopnest.into_inner().collect();
     expect_children(1, children.len())?;
@@ -157,6 +160,7 @@ fn build_loop(loopnest: Pair<Rule>) -> Result<Statement, ASTError> {
     }
 }
 
+// rule: while_block
 fn build_while(while_block: Pair<Rule>) -> Result<Statement, ASTError> {
     let mut children: Vec<Pair<Rule>> = while_block.into_inner().collect();
     expect_children(2, children.len())?;
@@ -172,6 +176,7 @@ fn build_while(while_block: Pair<Rule>) -> Result<Statement, ASTError> {
     })
 }
 
+// rule: for_block
 fn build_for(for_block: Pair<Rule>) -> Result<Statement, ASTError> {
     let mut children: Vec<Pair<Rule>> = for_block.into_inner().collect();
     expect_children(4, children.len())?;
@@ -248,6 +253,7 @@ fn build_term(term: Pair<Rule>) -> Result<Term, ASTError> {
     }
 }
 
+// rule: unop_use
 fn build_unop(unop: Pair<Rule>) -> Result<Term, ASTError> {
     let mut children: Vec<Pair<Rule>> = unop.into_inner().collect();
     expect_children(2, children.len())?;
@@ -263,6 +269,7 @@ fn build_unop(unop: Pair<Rule>) -> Result<Term, ASTError> {
     })
 }
 
+// rule: function
 fn build_function(function: Pair<Rule>) -> Result<Term, ASTError> {
     let mut children: Vec<Pair<Rule>> = function.into_inner().collect();
     expect_children(2, children.len())?;
@@ -274,6 +281,7 @@ fn build_function(function: Pair<Rule>) -> Result<Term, ASTError> {
     })
 }
 
+// rule: args
 fn build_args(args: Pair<Rule>) -> Result<Vec<String>, ASTError> {
     // todo: hacky!! we're not actually using the parsed tree here, just the strings
     let split: Vec<String> = args.as_str().split(",").map(str::to_string).collect();
@@ -284,6 +292,7 @@ fn build_args(args: Pair<Rule>) -> Result<Vec<String>, ASTError> {
     Ok(split)
 }
 
+// rule: block
 fn build_block(block: Pair<Rule>) -> Result<Block, ASTError> {
     let mut statements = Block { block: Vec::new() };
 
@@ -301,6 +310,7 @@ fn build_block(block: Pair<Rule>) -> Result<Block, ASTError> {
     Ok(statements)
 }
 
+// rule: function_call
 fn build_function_call(function_call: Pair<Rule>) -> Result<Term, ASTError> {
     let mut children: Vec<Pair<Rule>> = function_call.into_inner().collect();
     expect_children(2, children.len())?;
@@ -315,13 +325,40 @@ fn build_function_call(function_call: Pair<Rule>) -> Result<Term, ASTError> {
     })
 }
 
+// rule: exps
 fn build_exps(exps: Pair<Rule>) -> Result<Vec<Exp>, ASTError> {
-    let children: Vec<Pair<Rule>> = exps.into_inner().collect();
-
+    let mut children: Vec<Pair<Rule>> = exps.into_inner().collect();
     let mut exps_vec = Vec::new();
 
-    for child in children {
-        exps_vec.push(build_exp(child)?);
+    // imagine a function call: myfunc(1, 2, 3, 4, 5)
+    // for the params, the parser will give us a structure like:
+    /*
+    {
+        exp: 1, // a
+        exps: { // b
+            exp: 2,
+            exps: {
+                exp: 3,
+                exps: {
+                    exp: 4
+                    ....
+                }
+            }
+        }
+    }
+    */
+    
+    // for multiple args, we consume the first (a), and traverse down (b)
+    while children.len() > 1 {
+        exps_vec.push(build_exp(children.remove(0))?);
+        children = children.remove(0).into_inner().collect();
+    }
+    
+    // consumes the last/single arg if there is one
+    // we must do this seperately because the loop essentially does 2 steps at once,
+    // if there are 0 or 1 steps to do, we will over-run the structure
+    if children.len() > 0 {
+        exps_vec.push(build_exp(children.remove(0))?);
     }
 
     Ok(exps_vec)

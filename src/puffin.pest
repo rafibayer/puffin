@@ -57,7 +57,7 @@ string = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 function = { "fn" ~ "(" ~ args ~ ")" ~ block }
     function_call = { name ~ "(" ~ exps ~ ")" }
     args = { name ~ "," ~ args | name | "" }
-    exps = { exp ~ "," ~ exps | (exp) | "" }
+    exps = { exp ~ "," ~ exps | exp | "" }
 
 block = { "{" ~ statement* ~ "}"}
 
