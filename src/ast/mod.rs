@@ -64,7 +64,7 @@ fn build_statement(statement: Pair<Rule>) -> Result<Statement, ASTError> {
         Rule::exp => Ok(Statement {
             statement: StatementKind::Exp(build_exp(child)?),
         }),
-        Rule::nest => todo!(),
+        Rule::nest => build_nest(child),
         _ => Err(unexpected_pair(child)),
     }
 }
@@ -93,6 +93,101 @@ fn build_assign(assign_statement: Pair<Rule>) -> Result<Statement, ASTError> {
 
     Ok(Statement {
         statement: StatementKind::Assign { lhs, rhs },
+    })
+}
+
+// rule: nest
+fn build_nest(nest: Pair<Rule>) -> Result<Statement, ASTError> {
+    let mut children: Vec<Pair<Rule>> = nest.into_inner().collect();
+    expect_children(1, children.len())?;
+
+    let child = children.remove(0);
+
+    match child.as_rule() {
+        Rule::condnest => build_cond(child),
+        Rule::loopnest => build_loop(child),
+        _ => Err(unexpected_pair(child)),
+    }
+}
+
+fn build_cond(condnest: Pair<Rule>) -> Result<Statement, ASTError> {
+    let mut children: Vec<Pair<Rule>> = condnest.into_inner().collect();
+    expect_children(1, children.len())?;
+    let child = children.remove(0);
+    match child.as_rule() {
+        // todo: factor to seperate methods/call to other method
+        Rule::if_block => {
+            let mut ifparts: Vec<Pair<Rule>> = child.into_inner().collect();
+            expect_children(2, ifparts.len())?;
+            let cond = build_exp(ifparts.remove(0))?;
+            let then = build_block(ifparts.remove(0))?;
+
+            Ok(Statement {
+                statement: StatementKind::Nest(NestKind::CondNest(CondNestKind::If { cond, then })),
+            })
+        }
+        Rule::if_else_block => {
+            let mut ifparts: Vec<Pair<Rule>> = child.into_inner().collect();
+            expect_children(3, ifparts.len())?;
+            let cond = build_exp(ifparts.remove(0))?;
+            let then = build_block(ifparts.remove(0))?;
+            let or_else = build_block(ifparts.remove(0))?;
+
+            Ok(Statement {
+                statement: StatementKind::Nest(NestKind::CondNest(CondNestKind::IfElse {
+                    cond,
+                    then,
+                    or_else,
+                })),
+            })
+        }
+        _ => Err(unexpected_pair(child)),
+    }
+}
+
+fn build_loop(loopnest: Pair<Rule>) -> Result<Statement, ASTError> {
+    let mut children: Vec<Pair<Rule>> = loopnest.into_inner().collect();
+    expect_children(1, children.len())?;
+    let child = children.remove(0);
+
+    match child.as_rule() {
+        Rule::while_block => build_while(child),
+        Rule::for_block => build_for(child),
+        _ => Err(unexpected_pair(child)),
+    }
+}
+
+fn build_while(while_block: Pair<Rule>) -> Result<Statement, ASTError> {
+    let mut children: Vec<Pair<Rule>> = while_block.into_inner().collect();
+    expect_children(2, children.len())?;
+
+    let cond = build_exp(children.remove(0))?;
+    let block = build_block(children.remove(0))?;
+
+    Ok(Statement {
+        statement: StatementKind::Nest(NestKind::LoopNest(LoopNestKind::While {
+            cond,
+            block,
+        })),
+    })
+}
+
+fn build_for(for_block: Pair<Rule>) -> Result<Statement, ASTError> {
+    let mut children: Vec<Pair<Rule>> = for_block.into_inner().collect();
+    expect_children(4, children.len())?;
+
+    let init = build_statement(children.remove(0))?;
+    let cond = build_exp(children.remove(0))?;
+    let adv = build_assign(children.remove(0))?;
+    let block = build_block(children.remove(0))?;
+
+    Ok(Statement {
+        statement: StatementKind::Nest(NestKind::LoopNest(LoopNestKind::For {
+            init: Box::new(init),
+            cond,
+            adv: Box::new(adv),
+            block,
+        })),
     })
 }
 
@@ -208,7 +303,7 @@ fn build_block(block: Pair<Rule>) -> Result<Block, ASTError> {
 
 fn build_function_call(function_call: Pair<Rule>) -> Result<Term, ASTError> {
     let mut children: Vec<Pair<Rule>> = function_call.into_inner().collect();
-    expect_children(1, children.len())?;
+    expect_children(2, children.len())?;
     let name = build_name(children.remove(0))?;
     let exps = build_exps(children.remove(0))?;
 
@@ -323,6 +418,7 @@ fn expect_children(expected: usize, got: usize) -> Result<(), ASTError<'static>>
     Ok(())
 }
 
+// todo: remove annotation
 #[track_caller]
 fn unexpected_pair(pair: Pair<Rule>) -> ASTError {
     // https://stackoverflow.com/a/60714285/9723960

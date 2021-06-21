@@ -8,12 +8,26 @@ mod test {
     fn test_program() {
         let tests = vec![
             r"1;",
+            r"x = 1;",
+            r"x = x;",
+            r"x[x] = x;",
+            r"x[x] = func(x);",
+            r"x[func(x)] = func(x);",
+            r#"
+            x = [5];
+            for (i = 0; i < len(x); i = i + 1) {
+                x[i] = factorial(i+1);
+            }
+
+            return x;
+            "#
+
+
         ];
 
         for test in tests {
             let parsed = parse(test);
             ast(parsed).expect(test);
-
         }
 
     }
