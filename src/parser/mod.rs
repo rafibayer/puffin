@@ -1,7 +1,7 @@
 extern crate pest;
 
 #[derive(Parser)]
-#[grammar = "puffin.pest"]
+#[grammar = "puffin2.pest"]
 pub struct PuffinParser;
 
 #[cfg(test)]
@@ -10,7 +10,6 @@ mod test {
     use pest::Parser;
 
     use super::*;
-
     
 
     #[test]
@@ -127,15 +126,15 @@ mod test {
             r"arr[5+5]",
             r"arr[arr[1]]",
             r"arr[call(a, b, x[55]) + 123]",
-            r"arr[call(a, b, x[55]), 123]",
-            r"arr[a, b + 123]",
-            r"arr[a , b, c]",
+            r"arr[call(a, b, x[55])]",
+            r"(arr[a])[b + 123]",
+            r"(arr[a][b])[c]",
         ];
 
         for test in tests {
             let pairs = PuffinParser::parse(Rule::array_index, test).expect(test);
             let last = pairs.last().unwrap();
-            assert_eq!(last.as_span().end(), test.len(), "{}", last);
+            assert_eq!(last.as_span().end(), test.len(), "{}", test);
         }
     }
 
@@ -145,7 +144,6 @@ mod test {
             r"-5",
             r"-55",
             r"-(5)",
-            r"!(true || false)",
             r"-name",
             r"-arr[-5]",
             r#"-"string""#,
@@ -153,9 +151,9 @@ mod test {
         ];
 
         for test in tests {
-            let pairs = PuffinParser::parse(Rule::unop_use, test).expect(test);
+            let pairs = PuffinParser::parse(Rule::exp, test).expect(test);
             let last = pairs.last().unwrap();
-            assert_eq!(last.as_span().end(), test.len(), "{}", last);
+            assert_eq!(last.as_span().end(), test.len(), "{}", test);
         }
     }
 
@@ -256,7 +254,7 @@ mod test {
         for test in tests {
             let pairs = PuffinParser::parse(Rule::exp, test).expect(test);
             let last = pairs.last().unwrap();
-            assert_eq!(last.as_span().end(), test.len(), "{}", last);
+            assert_eq!(last.as_span().end(), test.len(), "{}", test);
         }
     }
 
@@ -271,7 +269,7 @@ mod test {
         for test in tests {
             let pairs = PuffinParser::parse(Rule::program, test).expect(test);
             let last = pairs.last().unwrap();
-            assert_eq!(last.as_span().end(), test.len(), "{}", last);
+            assert_eq!(last.as_span().end(), test.len(), "{}", test);
         }
     }
 }

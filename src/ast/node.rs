@@ -40,7 +40,7 @@ pub enum TermKind {
     UnopUse{unop: UnopKind, term: Box<Term>},
     Function{args: Vec<String>, body: Block},
     FunctionCall{name: Box<Term>, exps: Vec<Exp>},
-    ArrayIndex{name: Box<Term>, exps: Vec<Exp>},
+    ArrayIndex{subscriptable: Box<Term>, exps: Vec<Exp>},
     ArrayInit{size: Box<Exp>},
     Name(String),
     Num(f64),

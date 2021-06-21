@@ -19,40 +19,44 @@ statement = {
 return_statment = { "return" ~ exp }
 assign_statment = { exp ~ "=" ~ exp }
 
-// expression: parenthesized expression, infix expression, or single term
 exp = {
-    infix |
-    term |
-    "(" ~ exp ~ ")" 
+    comparison |
+    paren
 }
 
-// infix operator usage: term followed by 1 or more operators and terms
-infix = { term ~ (op ~ term)+ }
+paren = { "(" ~ exp ~ ")" }
 
-// term: ordered by precedence and number of tokens consumed
-term = {
-    unop_use |
-    function |
-    array_index |
-    array_init |
-    function_call |
-    name |
-    num |
-    string |
-    "(" ~ exp ~ ")" 
+// reverse precedence order 
+comparison = _{ logical ~ (("<" | "<=" | ">" | ">=" | "==" | "!=" ) ~ (logical | paren))*}
+logical = _{ sum ~ (("||" | "&&" ) ~ (sum | paren))*}
+sum = _{ product ~ (( "+" | "-" ) ~ (product | paren))* }
+product = _{ unary ~ (("*" | "/" | "%") ~ (unary | paren))* }
+unary = _{ unop? ~ (access | paren) }
+access = _{ (call | paren) ~ ("[" ~ exp ~ "]")? }
+call = _{ (value | paren) ~ ("(" ~ exp ~ ")")? }
+value = { ("(" ~ value ~ ")") | function | function_call | array_index | num | string | array_init | name }
+
+rightop = {
+    ("[" ~ exp ~ "]") |
+    ("(" ~ exps ~ ")") |
+    ("." ~ name)
+}
+
+unop = {
+    "!" |
+    "-"
 }
 
 // numerical literal
 num = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 
-// arrays
-array_index = { subscriptable ~ "[" ~ exps ~ "]" }
-    subscriptable = { ("(" ~ exp ~ ")") | function_call | name }
-array_init = { "[" ~ exp ~ "]" }
-
-unop_use = { unop ~ term }
+structure = { "{" ~ field* ~ "}"}
+field = { name ~ ":" ~ exp }
 
 string = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+
+array_init = { "[" ~ exp ~ "]" }
+array_index = { (function_call | ("(" ~ exp ~ ")") | name) ~ "[" ~ exp ~ "]" }
 
 // function definition, "fn" followed by 0 or more arg names followed by function body
 function = { "fn" ~ "(" ~ args ~ ")" ~ block }
@@ -87,24 +91,4 @@ nest = {
         while_block = { ("while" ~ exp ~ block) }
         for_block = { ("for" ~ "(" ~ statement ~ exp ~ ";" ~ (assign_statment | exp) ~ ")" ~ block) }
 
-// ordered from highest to lowest precedence
-op = {
-    "*" |
-    "%" |
-    "/" |
-    "+" |
-    "-" |
-    "<" |
-    ">" |
-    "<=" |
-    ">=" |
-    "==" |
-    "!=" |
-    "&&" |
-    "||" 
-}
 
-unop = {
-    "!" |
-    "-"
-}

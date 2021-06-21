@@ -376,7 +376,7 @@ fn build_array_index(array_index: Pair<Rule>) -> Result<Term, ASTError> {
 
     Ok(Term {
         term: TermKind::ArrayIndex {
-            name: Box::new(name),
+            subscriptable: Box::new(name),
             exps: exps,
         },
     })
