@@ -1,5 +1,0 @@
-x = fn(a, b, c) {
-    return a * b * c;
-};
-
-print(x(4, 5, 6));
