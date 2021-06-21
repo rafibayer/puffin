@@ -169,10 +169,7 @@ fn build_while(while_block: Pair<Rule>) -> Result<Statement, ASTError> {
     let block = build_block(children.remove(0))?;
 
     Ok(Statement {
-        statement: StatementKind::Nest(NestKind::LoopNest(LoopNestKind::While {
-            cond,
-            block,
-        })),
+        statement: StatementKind::Nest(NestKind::LoopNest(LoopNestKind::While { cond, block })),
     })
 }
 
@@ -284,7 +281,13 @@ fn build_function(function: Pair<Rule>) -> Result<Term, ASTError> {
 // rule: args
 fn build_args(args: Pair<Rule>) -> Result<Vec<String>, ASTError> {
     // todo: hacky!! we're not actually using the parsed tree here, just the strings
-    let split: Vec<String> = args.as_str().split(",").map(str::to_string).collect();
+    let split: Vec<String> = args
+        .as_str()
+        .split(",")
+        .map(str::trim)
+
+        .map(str::to_string)
+        .collect();
     if &split[0] == "" {
         // empty vec if there are no args, instead of vec with empty string ([] vs [""])
         return Ok(Vec::new());
@@ -347,13 +350,13 @@ fn build_exps(exps: Pair<Rule>) -> Result<Vec<Exp>, ASTError> {
         }
     }
     */
-    
+
     // for multiple args, we consume the first (a), and traverse down (b)
     while children.len() > 1 {
         exps_vec.push(build_exp(children.remove(0))?);
         children = children.remove(0).into_inner().collect();
     }
-    
+
     // consumes the last/single arg if there is one
     // we must do this seperately because the loop essentially does 2 steps at once,
     // if there are 0 or 1 steps to do, we will over-run the structure
