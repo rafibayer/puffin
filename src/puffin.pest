@@ -34,9 +34,9 @@ term = {
     "(" ~ exp ~ ")" |
     unop_use |
     function |
-    function_call |
     array_index |
     array_init |
+    function_call |
     name |
     num |
     string
@@ -47,7 +47,7 @@ num = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 
 // arrays
 array_index = { name ~ "[" ~ exp ~ "]" }
-    // subscriptable = { name | function_call | ("(" ~ exp ~ ")")}
+    subscriptable = { name | function_call | ("(" ~ exp ~ ")")}
 array_init = { "[" ~ exp ~ "]" }
 
 unop_use = { unop ~ term }
