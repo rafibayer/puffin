@@ -36,7 +36,7 @@ sum = _{ product ~ (sum_op ~ (product | paren))* }
 product = _{ unary ~ (mul_op ~ (unary | paren))* }
 unary = _{ un_op? ~ (postfix | paren) }
 postfix = _{ (value | paren) ~ post_op? }
-value = { paren | structure |function | num | string | array_init | name }
+value = { paren | structure | function | num | string | array_init | name }
 
 log_op = {
     "||" |
@@ -90,8 +90,8 @@ array_init = { "[" ~ exp ~ "]" }
 
 // function definition, "fn" followed by 0 or more arg names followed by function body
 function = { "fn" ~ "(" ~ args ~ ")" ~ block }
-    args = { name ~ "," ~ args | name | "" }
-    exps = { exp ~ "," ~ exps | exp | "" }
+    args = _{ name ~ "," ~ args | name | "" }
+    exps = _{ exp ~ "," ~ exps | exp | "" }
 
 block = { "{" ~ statement* ~ "}"}
 
