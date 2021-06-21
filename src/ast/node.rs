@@ -39,8 +39,8 @@ pub enum TermKind {
     Paren(Box<Exp>),
     UnopUse{unop: UnopKind, term: Box<Term>},
     Function{args: Vec<String>, body: Block},
-    FunctionCall{name: String, exps: Vec<Exp>},
-    ArrayIndex{name: String, exp: Box<Exp>},
+    FunctionCall{name: Box<Term>, exps: Vec<Exp>},
+    ArrayIndex{name: Box<Term>, exp: Box<Exp>},
     ArrayInit{size: Box<Exp>},
     Name(String),
     Num(f64),
@@ -49,7 +49,7 @@ pub enum TermKind {
 
 #[derive(Debug)]
 pub struct Block {
-    block: Vec<Statement>
+    pub block: Vec<Statement>
 }
 
 #[derive(Debug)]

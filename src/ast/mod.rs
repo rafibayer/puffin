@@ -1,11 +1,9 @@
 // todo: remove
 #![feature(track_caller)]
 
-
-use std::usize;
-use pest::iterators::{Pair, Pairs};
 use crate::{PuffinParser, Rule};
-
+use pest::iterators::{Pair, Pairs};
+use std::usize;
 
 use node::*;
 
@@ -17,16 +15,16 @@ mod test;
 #[derive(Debug)]
 pub enum ASTError<'i> {
     UnexpectedPair(Pair<'i, Rule>),
-    ChildMismatch{ expected: usize, got: usize},
+    ChildMismatch { expected: usize, got: usize },
     InvalidOperator(Pair<'i, Rule>),
-    InvalidNum(Pair<'i, Rule>)
+    InvalidNum(Pair<'i, Rule>),
 }
 
 // Rule: Program
 pub fn ast(program: Pair<Rule>) -> Result<Program, ASTError> {
     match program.as_rule() {
         Rule::program => build_program(program),
-        _ => Err(unexpected_pair(program))
+        _ => Err(unexpected_pair(program)),
     }
 }
 
@@ -43,7 +41,7 @@ fn build_program(program: Pair<Rule>) -> Result<Program, ASTError> {
         match pair.as_rule() {
             Rule::statement => statements.program.push(build_statement(pair)?),
             Rule::EOI => break,
-            _ => return Err(unexpected_pair(pair))
+            _ => return Err(unexpected_pair(pair)),
         }
     }
 
@@ -52,7 +50,7 @@ fn build_program(program: Pair<Rule>) -> Result<Program, ASTError> {
 
 // Rule: Statement
 fn build_statement(statement: Pair<Rule>) -> Result<Statement, ASTError> {
-    let mut children: Vec<Pair<Rule>> = statement.into_inner().into_iter().collect();    
+    let mut children: Vec<Pair<Rule>> = statement.into_inner().into_iter().collect();
 
     // check if num children is not exactly 1
     expect_children(1, children.len())?;
@@ -63,11 +61,11 @@ fn build_statement(statement: Pair<Rule>) -> Result<Statement, ASTError> {
     match child.as_rule() {
         Rule::return_statment => build_return(child),
         Rule::assign_statment => build_assign(child),
-        Rule::exp => {
-            Ok(Statement { statement: StatementKind::Exp(build_exp(child)?) })
-        },
+        Rule::exp => Ok(Statement {
+            statement: StatementKind::Exp(build_exp(child)?),
+        }),
         Rule::nest => todo!(),
-        _ => Err(unexpected_pair(child))
+        _ => Err(unexpected_pair(child)),
     }
 }
 
@@ -79,8 +77,10 @@ fn build_return(return_statement: Pair<Rule>) -> Result<Statement, ASTError> {
     let child = children.remove(0);
 
     match child.as_rule() {
-        Rule::exp => Ok(Statement { statement: StatementKind::Return(build_exp(child)?) }),
-        _ => Err(unexpected_pair(child))
+        Rule::exp => Ok(Statement {
+            statement: StatementKind::Return(build_exp(child)?),
+        }),
+        _ => Err(unexpected_pair(child)),
     }
 }
 
@@ -91,7 +91,9 @@ fn build_assign(assign_statement: Pair<Rule>) -> Result<Statement, ASTError> {
     let lhs = build_exp(children.remove(0))?;
     let rhs = build_exp(children.remove(0))?;
 
-    Ok(Statement{ statement: StatementKind::Assign { lhs, rhs } })
+    Ok(Statement {
+        statement: StatementKind::Assign { lhs, rhs },
+    })
 }
 
 // Rule: exp
@@ -103,14 +105,12 @@ fn build_exp(exp: Pair<Rule>) -> Result<Exp, ASTError> {
     match child.as_rule() {
         Rule::exp => build_exp(child),
         Rule::infix => build_infix(child),
-        Rule::term => {
-            Ok(Exp { exp: ExpKind::Term( build_term(child)?) })
-        },
-        _ => Err(unexpected_pair(child))
+        Rule::term => Ok(Exp {
+            exp: ExpKind::Term(build_term(child)?),
+        }),
+        _ => Err(unexpected_pair(child)),
     }
 }
-
-
 
 // Rule: infix
 fn build_infix(infix: Pair<Rule>) -> Result<Exp, ASTError> {
@@ -126,8 +126,9 @@ fn build_infix(infix: Pair<Rule>) -> Result<Exp, ASTError> {
         op_terms.push((next_op, next_term))
     }
 
-    Ok(Exp { exp: ExpKind::Infix { term, op_terms } })
-
+    Ok(Exp {
+        exp: ExpKind::Infix { term, op_terms },
+    })
 }
 
 // Rule: term
@@ -137,9 +138,9 @@ fn build_term(term: Pair<Rule>) -> Result<Term, ASTError> {
     let child = children.remove(0);
 
     match child.as_rule() {
-        Rule::exp => {
-            Ok(Term { term: TermKind::Paren(Box::new(build_exp(child)?)) })
-        },
+        Rule::exp => Ok(Term {
+            term: TermKind::Paren(Box::new(build_exp(child)?)),
+        }),
         Rule::unop_use => build_unop(child),
         Rule::function => build_function(child),
         Rule::function_call => build_function_call(child),
@@ -148,7 +149,7 @@ fn build_term(term: Pair<Rule>) -> Result<Term, ASTError> {
         Rule::name => build_name(child),
         Rule::num => build_num(child),
         Rule::string => build_string(child),
-        _ => Err(unexpected_pair(child))
+        _ => Err(unexpected_pair(child)),
     }
 }
 
@@ -159,43 +160,108 @@ fn build_unop(unop: Pair<Rule>) -> Result<Term, ASTError> {
     let unop_op = get_unop(children.remove(0))?;
     let unop_term = build_term(children.remove(0))?;
 
-    Ok(Term { term: TermKind::UnopUse{ unop: unop_op, term: Box::new(unop_term) } })
+    Ok(Term {
+        term: TermKind::UnopUse {
+            unop: unop_op,
+            term: Box::new(unop_term),
+        },
+    })
 }
 
 fn build_function(function: Pair<Rule>) -> Result<Term, ASTError> {
     let mut children: Vec<Pair<Rule>> = function.into_inner().collect();
     expect_children(2, children.len())?;
-    let child = children.remove(0);
+    let args = build_args(children.remove(0))?;
+    let body = build_block(children.remove(0))?;
 
-    todo!()
+    Ok(Term {
+        term: TermKind::Function { args, body },
+    })
+}
+
+fn build_args(args: Pair<Rule>) -> Result<Vec<String>, ASTError> {
+    // todo: hacky!! we're not actually using the parsed tree here, just the strings
+    let split: Vec<String> = args.as_str().split(",").map(str::to_string).collect();
+    if &split[0] == "" {
+        // empty vec if there are no args, instead of vec with empty string ([] vs [""])
+        return Ok(Vec::new());
+    }
+    Ok(split)
+}
+
+fn build_block(block: Pair<Rule>) -> Result<Block, ASTError> {
+    let mut statements = Block { block: Vec::new() };
+
+    // Statements
+    let children = block.into_inner();
+
+    for pair in children {
+        match pair.as_rule() {
+            Rule::statement => statements.block.push(build_statement(pair)?),
+            Rule::EOI => break,
+            _ => return Err(unexpected_pair(pair)),
+        }
+    }
+
+    Ok(statements)
 }
 
 fn build_function_call(function_call: Pair<Rule>) -> Result<Term, ASTError> {
     let mut children: Vec<Pair<Rule>> = function_call.into_inner().collect();
     expect_children(1, children.len())?;
-    let child = children.remove(0);
+    let name = build_name(children.remove(0))?;
+    let exps = build_exps(children.remove(0))?;
 
-    todo!()
+    Ok(Term {
+        term: TermKind::FunctionCall {
+            name: Box::new(name),
+            exps,
+        },
+    })
+}
+
+fn build_exps(exps: Pair<Rule>) -> Result<Vec<Exp>, ASTError> {
+    let children: Vec<Pair<Rule>> = exps.into_inner().collect();
+
+    let mut exps_vec = Vec::new();
+
+    for child in children {
+        exps_vec.push(build_exp(child)?);
+    }
+
+    Ok(exps_vec)
 }
 
 fn build_array_index(array_index: Pair<Rule>) -> Result<Term, ASTError> {
     let mut children: Vec<Pair<Rule>> = array_index.into_inner().collect();
     expect_children(2, children.len())?;
-    let child = children.remove(0);
+    let name = build_name(children.remove(0))?;
+    let exp = build_exp(children.remove(0))?;
 
-    todo!()
+    Ok(Term {
+        term: TermKind::ArrayIndex {
+            name: Box::new(name),
+            exp: Box::new(exp),
+        },
+    })
 }
 
 fn build_array_init(array_init: Pair<Rule>) -> Result<Term, ASTError> {
     let mut children: Vec<Pair<Rule>> = array_init.into_inner().collect();
     expect_children(1, children.len())?;
-    let child = children.remove(0);
+    let size = build_exp(children.remove(0))?;
 
-    todo!()
+    Ok(Term {
+        term: TermKind::ArrayInit {
+            size: Box::new(size),
+        },
+    })
 }
 
 fn build_name(name: Pair<Rule>) -> Result<Term, ASTError> {
-    Ok(Term {term: TermKind::Name(name.as_str().to_string())})
+    Ok(Term {
+        term: TermKind::Name(name.as_str().to_string()),
+    })
 }
 
 fn build_num(term: Pair<Rule>) -> Result<Term, ASTError> {
@@ -204,11 +270,15 @@ fn build_num(term: Pair<Rule>) -> Result<Term, ASTError> {
         return Err(ASTError::InvalidNum(term));
     }
 
-    Ok(Term { term: TermKind::Num(num.unwrap())})
+    Ok(Term {
+        term: TermKind::Num(num.unwrap()),
+    })
 }
 
 fn build_string(term: Pair<Rule>) -> Result<Term, ASTError> {
-    Ok(Term {term: TermKind::String(term.as_str().to_string())})
+    Ok(Term {
+        term: TermKind::String(term.as_str().to_string()),
+    })
 }
 
 // Rule: op
@@ -227,7 +297,7 @@ fn get_op(op: Pair<Rule>) -> Result<OpKind, ASTError> {
         "!=" => OpKind::Ne,
         "&&" => OpKind::And,
         "||" => OpKind::Or,
-        _ => return Err(ASTError::InvalidOperator(op))
+        _ => return Err(ASTError::InvalidOperator(op)),
     })
 }
 
@@ -235,7 +305,7 @@ fn get_unop(unop: Pair<Rule>) -> Result<UnopKind, ASTError> {
     Ok(match unop.as_str() {
         "!" => UnopKind::Not,
         "-" => UnopKind::Neg,
-        _ => return Err(ASTError::InvalidOperator(unop))
+        _ => return Err(ASTError::InvalidOperator(unop)),
     })
 }
 
@@ -247,7 +317,7 @@ fn expect_children(expected: usize, got: usize) -> Result<(), ASTError<'static>>
         let caller_location = std::panic::Location::caller();
         let caller_line_number = caller_location.line();
         eprintln!("child mismatch: ln:{}", caller_line_number);
-        return Err(ASTError::ChildMismatch{ expected, got })
+        return Err(ASTError::ChildMismatch { expected, got });
     }
 
     Ok(())
@@ -255,6 +325,7 @@ fn expect_children(expected: usize, got: usize) -> Result<(), ASTError<'static>>
 
 #[track_caller]
 fn unexpected_pair(pair: Pair<Rule>) -> ASTError {
+    // https://stackoverflow.com/a/60714285/9723960
     let caller_location = std::panic::Location::caller();
     let caller_line_number = caller_location.line();
     eprintln!("unexpected pair: ln:{}", caller_line_number);
