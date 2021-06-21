@@ -132,10 +132,11 @@ mod test {
             r"arr[call(a, b, x[55])]",
             r"(arr[a])[b + 123]",
             r"(arr[a][b])[c]",
+            r"func(a, b)[c]",
         ];
 
         for test in tests {
-            let pairs = PuffinParser::parse(Rule::array_index, test).expect(test);
+            let pairs = PuffinParser::parse(Rule::exp, test).expect(test);
             let last = pairs.last().unwrap();
             assert_eq!(last.as_span().end(), test.len(), "{}", test);
         }
@@ -192,12 +193,14 @@ mod test {
             r"func(a, b, c)",
             r"func(1, 1+1, 1+1+1)",
             r"func(arr[1], arr[1]+1, arr[1+1]+1)",
+            r"(func())()",
+            r"arr[5]()",
         ];
 
         for test in tests {
-            let pairs = PuffinParser::parse(Rule::function_call, test).expect(test);
+            let pairs = PuffinParser::parse(Rule::exp, test).expect(test);
             let last = pairs.last().unwrap();
-            assert_eq!(last.as_span().end(), test.len(), "{}", last);
+            assert_eq!(last.as_span().end(), test.len(), "{}", test);
         }
     }
 

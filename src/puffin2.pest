@@ -20,6 +20,7 @@ return_statment = { "return" ~ exp }
 assign_statment = { exp ~ "=" ~ exp }
 
 exp = {
+    comparison ~ post_op |
     comparison |
     paren
 }
@@ -29,16 +30,45 @@ paren = { "(" ~ exp ~ ")" }
 // reverse precedence order 
 // https://en.wikipedia.org/wiki/Parsing_expression_grammar#Examples
 // https://pest.rs/book/intro.html
-comparison = _{ logical ~ (("<" | "<=" | ">" | ">=" | "==" | "!=" ) ~ (logical | paren))*}
-logical = _{ sum ~ (("||" | "&&" ) ~ (sum | paren))*}
-sum = _{ product ~ (( "+" | "-" ) ~ (product | paren))* }
-product = _{ unary ~ (("*" | "/" | "%") ~ (unary | paren))* }
-unary = _{ unop? ~ (access | paren) }
-access = _{ (func | paren) ~ subscript? }
-func = _{ (value | paren) ~ call? }
-value = { ("(" ~ value ~ ")") | function | function_call | array_index | num | string | array_init | name }
+comparison = _{ logical ~ (comp_op ~ (logical | paren))*}
+logical = _{ sum ~ (log_op ~ (sum | paren))*}
+sum = _{ product ~ (sum_op ~ (product | paren))* }
+product = _{ unary ~ (mul_op ~ (unary | paren))* }
+unary = _{ un_op? ~ (postfix | paren) }
+postfix = _{ (value | paren) ~ post_op? }
+value = { paren | structure |function | num | string | array_init | name }
 
-rightop = {
+log_op = {
+    "||" |
+    "&&"
+}
+
+comp_op = {
+    "<" |
+    "<=" |
+    ">" |
+    ">=" |
+    "==" |
+    "!=" 
+}
+
+sum_op = {
+    "-" |
+    "+" 
+}
+
+mul_op = {
+    "/" |
+    "%" |
+    "*" 
+}
+
+un_op = {
+    "!" |
+    "-"
+}
+
+post_op = _{
     subscript |
     call |
     dot
@@ -47,26 +77,19 @@ rightop = {
     call = { "(" ~ exps ~ ")" }
     dot = { "." ~ name }
 
-unop = {
-    "!" |
-    "-"
-}
-
 // numerical literal
 num = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 
-structure = { "{" ~ field* ~ "}"}
+structure = { "{" ~ fields* ~ "}"}
+fields = _{ field ~ "," ~ fields | field }
 field = { name ~ ":" ~ exp }
 
 string = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 
 array_init = { "[" ~ exp ~ "]" }
-array_index = { (function_call | ("(" ~ exp ~ ")") | name) ~ "[" ~ exp ~ "]" }
 
 // function definition, "fn" followed by 0 or more arg names followed by function body
 function = { "fn" ~ "(" ~ args ~ ")" ~ block }
-    function_call = { callable ~ "(" ~ exps ~ ")" }
-        callable = { ("(" ~ exp ~ ")") | name }
     args = { name ~ "," ~ args | name | "" }
     exps = { exp ~ "," ~ exps | exp | "" }
 
