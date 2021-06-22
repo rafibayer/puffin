@@ -20,7 +20,7 @@ return_statment = { "return" ~ exp }
 assign_statment = { exp ~ "=" ~ exp }
 
 exp = {
-    comparison ~ post_op |
+    comparison ~ post_op* |
     comparison |
     paren
 }
@@ -68,7 +68,7 @@ un_op = {
     "-"
 }
 
-post_op = _{
+post_op = {
     subscript |
     call |
     dot
