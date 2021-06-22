@@ -45,7 +45,7 @@ mod test {
         for test in tests {
             let pairs = PuffinParser::parse(Rule::name, test).unwrap();
             let last = pairs.last().unwrap();
-            assert_eq!(last.as_span().end_pos().pos(), test.len());
+            assert_eq!(last.as_span().end_pos().pos(), test.len(), "{}", test);
         }
     }
 
@@ -60,7 +60,7 @@ mod test {
         for test in tests {
             let pairs = PuffinParser::parse(Rule::return_statment, test).expect(test);
             let last = pairs.last().unwrap();
-            assert_eq!(last.as_span().end_pos().pos(), test.len());
+            assert_eq!(last.as_span().end_pos().pos(), test.len(), "{}", test);
         }
     }
 
@@ -77,7 +77,7 @@ mod test {
         for test in tests {
             let pairs = PuffinParser::parse(Rule::assign_statment, test).expect(test);
             let last = pairs.last().unwrap();
-            assert_eq!(last.as_span().end_pos().pos(), test.len());
+            assert_eq!(last.as_span().end_pos().pos(), test.len(), "{}", test);
         }
     }
 
@@ -118,7 +118,7 @@ mod test {
         for test in tests {
             let pairs = PuffinParser::parse(Rule::array_init, test).unwrap();
             let last = pairs.last().unwrap();
-            assert_eq!(last.as_span().end(), test.len());
+            assert_eq!(last.as_span().end(), test.len(), "{}", test);
             
         }
     }
@@ -133,6 +133,8 @@ mod test {
             r"(arr[a])[b + 123]",
             r"(arr[a][b])[c]",
             r"func(a, b)[c]",
+            r"a[b][c][d][e][f][g]",
+            r"[5][0]",
         ];
 
         for test in tests {
@@ -151,7 +153,6 @@ mod test {
             r"-name",
             r"-arr[-5]",
             r#"-"string""#,
-
         ];
 
         for test in tests {
@@ -180,7 +181,7 @@ mod test {
         for test in tests {
             let pairs = PuffinParser::parse(Rule::function, test).expect(test);
             let last = pairs.last().unwrap();
-            assert_eq!(last.as_span().end(), test.len(), "{}", last);
+            assert_eq!(last.as_span().end(), test.len(), "{}", test);
         }
     }
 
@@ -195,6 +196,8 @@ mod test {
             r"func(arr[1], arr[1]+1, arr[1+1]+1)",
             r"(func())()",
             r"arr[5]()",
+            r"f()()()()()()()()",
+            r"fn(a){}(b)"
         ];
 
         for test in tests {
@@ -223,7 +226,7 @@ mod test {
         for test in tests {
             let pairs = PuffinParser::parse(Rule::condnest, test).expect(test);
             let last = pairs.last().unwrap();
-            assert_eq!(last.as_span().end(), test.len(), "{}", last);
+            assert_eq!(last.as_span().end(), test.len(), "{}", test);
         }
     }
 
@@ -240,7 +243,7 @@ mod test {
         for test in tests {
             let pairs = PuffinParser::parse(Rule::loopnest, test).expect(test);
             let last = pairs.last().unwrap();
-            assert_eq!(last.as_span().end(), test.len(), "{}", last);
+            assert_eq!(last.as_span().end(), test.len(), "{}", test);
         }
     }
 

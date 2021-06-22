@@ -8,7 +8,7 @@ fn main() {
     let pairs = PuffinParser::parse(Rule::program, &input).unwrap();
     // clean_print(pairs, 0);
     // dbg!(&pairs);
-    let ast = ast::build_program(pairs.into_iter().nth(0).unwrap()).unwrap();
+    let ast = ast::build_program(pairs.into_iter().next().unwrap()).unwrap();
     println!("{:#?}", ast);
 
     

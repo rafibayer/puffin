@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod test {
     use pest::Parser;
+    use crate::PuffinParser;
 
     use super::super::*;
 

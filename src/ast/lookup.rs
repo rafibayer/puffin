@@ -30,3 +30,14 @@ pub fn unary(op: &str) -> Result<Unop, ASTError> {
     })
 }
 
+pub fn is_keyword(name: &str) -> bool {
+    match name {
+        "fn" => true,
+        "if" => true,
+        "else" => true,
+        "return" => true,
+        "for" => true,
+        "while" => true,
+        _ => false
+    }
+}

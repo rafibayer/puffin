@@ -1,20 +1,20 @@
-use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::{collections::HashMap, rc::Rc};
-use pest::iterators::{Pair, Pairs};
 use crate::Rule;
 
+use crate::ast::node::*;
 use super::InterpreterError;
 
 
-pub struct Environment<'a> {
-    parent: Option<Rc<RefCell<Environment<'a>>>>,
-    bindings: HashMap<String, Value<'a>>
+#[derive(Debug, Clone)]
+pub struct Environment {
+    parent: Option<Rc<RefCell<Environment>>>,
+    bindings: HashMap<String, Value>
 }
 
-impl<'a> Environment<'a> {
+impl Environment {
 
-    pub fn new() -> Environment<'a> {
+    pub fn new() -> Environment {
         Environment {
             parent: None,
             bindings: HashMap::new(),
@@ -28,17 +28,17 @@ impl<'a> Environment<'a> {
         }
     }
 
-    pub fn bind(&mut self, name: String, value: &'a Value) {
+    pub fn bind(&mut self, name: String, value: &Value) {
         self.bindings.insert(name, value.clone());
     }
 
 
-    pub fn get(&mut self, name: String) -> Result<Value, InterpreterError> {
+    pub fn get(&self, name: String) -> Result<Value, InterpreterError> {
         match self.bindings.get(&name) {
             Some(value) => Ok(value.clone()),
             None => match self.parent {
-                    Some(env) => {
-                        (&env.borrow()).get(name).clone()
+                    Some(ref env) => {
+                        env.borrow().get(name)
                     },
                     None => Err(InterpreterError::UnboundName(name)),
                 }
@@ -47,9 +47,10 @@ impl<'a> Environment<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub enum Value<'a> {
+pub enum Value {
     Num(f64),
     String(String),
-    Array(Vec<Value<'a>>),
-    Function{names: Vec<String>, body: Pair<'a, Rule>}
+    Array(Vec<Value>),
+    Structure(HashMap<String, Value>),
+    Function{args: Vec<String>, block: Block, env: Environment}
 }

@@ -35,12 +35,6 @@ pub struct Exp {
     pub exp: Vec<TermKind>
 }
 
-// #[derive(Debug, Clone)]
-// pub enum ExpKind {
-//     PostOp(Box<Exp>, PostOp),
-//     Exp(Box<Exp>),
-//     Term(TermKind)
-// }
 
 #[derive(Debug, Clone)]
 pub enum TermKind {
@@ -61,8 +55,8 @@ pub enum ValueKind {
 
 #[derive(Debug, Clone)]
 pub struct Field {
-    name: String,
-    exp: Exp
+    pub name: String,
+    pub exp: Exp
 }
 
 

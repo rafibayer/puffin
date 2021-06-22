@@ -1,6 +1,5 @@
-use crate::{PuffinParser, Rule};
-use pest::iterators::{Pair, Pairs};
-use std::usize;
+use crate::Rule;
+use pest::iterators::Pair;
 
 use node::*;
 
@@ -16,6 +15,8 @@ pub enum ASTError {
     UnexpectedToken(String),
     InvalidNum(String),
     InvalidOp(String),
+    InvalidName(String),
+    DuplicateArg(String),
 }
 
 pub fn build_program(program: Pair<Rule>) -> Result<Program, ASTError> {
@@ -35,8 +36,6 @@ pub fn build_program(program: Pair<Rule>) -> Result<Program, ASTError> {
 }
 
 fn build_statement(statement: Pair<Rule>) -> Result<Statement, ASTError> {
-    dbg!(&statement);
-
     let child = get_one(statement)?;
 
     match child.as_rule() {
@@ -69,14 +68,18 @@ fn build_assign(assign_statement: Pair<Rule>) -> Result<Statement, ASTError> {
 }
 
 fn build_assignable(assignable: Pair<Rule>) -> Result<Assingnable, ASTError> {
+    // value
     let mut inner = get_inner(assignable);
 
+    // parser allows for this to be a parenthesized assignable, if this is the case,
+    // we could unwrap it to allow for this, but that's a big pain in the ass right now
     let name = build_name(get_one(inner.remove(0))?)?;
 
-    let mut assignable_vec = Vec::new();
+    let mut assignable_vec = Vec::with_capacity(inner.len());
 
     while !inner.is_empty() {
-        let next = inner.remove(0);
+        let next = get_one(inner.remove(0))?;
+
         assignable_vec.push(match next.as_rule() {
             Rule::subscript => AssignableKind::ArrayIndex {
                 index: build_exp(get_one(next)?)?,
@@ -89,25 +92,30 @@ fn build_assignable(assignable: Pair<Rule>) -> Result<Assingnable, ASTError> {
     }
 
     Ok(Assingnable {
-        name: name,
+        name,
         assignable: assignable_vec,
     })
 }
 
 fn build_name(name: Pair<Rule>) -> Result<String, ASTError> {
     match name.as_rule() {
-        Rule::name => Ok(name.as_str().to_string()),
+        Rule::name => {
+            let val = name.as_str().to_string();
+            if lookup::is_keyword(&val) {
+                return Err(ASTError::InvalidName(val));
+            }
+            Ok(val)
+        },
         _ => Err(unexpected_token(name)),
     }
 }
 
 fn build_exp(exp: Pair<Rule>) -> Result<Exp, ASTError> {
     let mut inner = get_inner(exp);
-    let mut terms = Vec::new();
+    let mut terms = Vec::with_capacity(inner.len());
 
     while !inner.is_empty() {
         let next = inner.remove(0);
-        // dbg!(&next);
         terms.push(match next.as_rule() {
             Rule::value => TermKind::Value(build_value(next)?),
             Rule::log_op | Rule::comp_op | Rule::sum_op | Rule::mul_op => {
@@ -126,14 +134,59 @@ fn build_value(next: Pair<Rule>) -> Result<ValueKind, ASTError> {
     let child = get_one(next)?;
     Ok(match child.as_rule() {
         Rule::paren => ValueKind::Paren(Box::new(build_exp(get_one(child)?)?)),
-        Rule::structure => todo!(),
-        Rule::function => todo!(),
+        Rule::structure => build_structure(child)?,
+        Rule::function => build_function(child)?,
         Rule::num => ValueKind::Num(build_num(child)?),
         Rule::string => build_string(child)?,
         Rule::array_init => ValueKind::ArrayInit(Box::new(build_exp(get_one(child)?)?)),
         Rule::name => ValueKind::Name(build_name(child)?),
         _ => return Err(unexpected_token(child)),
     })
+}
+
+fn build_structure(structure: Pair<Rule>) -> Result<ValueKind, ASTError> {
+    let inner = get_inner(structure);
+
+    let mut fields = Vec::with_capacity(inner.len());
+
+    for field in inner {
+        let mut contents = get_inner(field);
+        fields.push(Field {
+            name: build_name(contents.remove(0))?,
+            exp: build_exp(contents.remove(0))?,
+        })
+    }
+
+    Ok(ValueKind::Structure(fields))
+}
+
+fn build_function(function: Pair<Rule>) -> Result<ValueKind, ASTError> {
+    let mut inner = get_inner(function);
+    // last child is block, everything else is an arg
+    let mut args = Vec::with_capacity(inner.len() - 1);
+    while inner.len() > 1 {
+        let next = build_name(inner.remove(0))?;
+        // check for duplicate args
+        if args.contains(&next) {
+            return Err(ASTError::DuplicateArg(next));
+        }
+        args.push(next);
+    }
+
+    let block = build_block(inner.remove(0))?;
+
+    Ok(ValueKind::Function { args, block })
+}
+
+fn build_block(statements: Pair<Rule>) -> Result<Block, ASTError> {
+    let inner = get_inner(statements);
+    let mut block = Vec::with_capacity(inner.len());
+
+    for statement in inner {
+        block.push(build_statement(statement)?);
+    }
+
+    Ok(Block { block })
 }
 
 fn build_num(num: Pair<Rule>) -> Result<f64, ASTError> {
@@ -152,13 +205,13 @@ fn build_string(string: Pair<Rule>) -> Result<ValueKind, ASTError> {
 
 fn build_postfix(postfix: Pair<Rule>) -> Result<PostOp, ASTError> {
     let inner = get_one(postfix)?;
-    dbg!(&inner);
 
     Ok(match inner.as_rule() {
         Rule::subscript => PostOp::Subscript(Box::new(build_exp(get_one(inner)?)?)),
         Rule::call => {
-            let mut exps = Vec::new();
-            for actual in get_inner(inner) {
+            let actuals = get_inner(inner);
+            let mut exps = Vec::with_capacity(actuals.len());
+            for actual in actuals {
                 exps.push(build_exp(actual)?)
             }
 
@@ -178,8 +231,8 @@ fn get_one(pair: Pair<Rule>) -> Result<Pair<Rule>, ASTError> {
         let caller_line_number = caller_location.line();
         eprintln!("expected one: src\\ast\\mod.rs:{}", caller_line_number);
         return Err(ASTError::ChildMismatch {
-            got: 1,
-            expected: children.len(),
+            got: children.len(),
+            expected: 1,
         });
     }
 
@@ -192,7 +245,7 @@ fn get_inner(pair: Pair<Rule>) -> Vec<Pair<Rule>> {
 
 // todo: remove annotation
 #[track_caller]
-fn expect_children(expected: usize, got: &Vec<Pair<Rule>>) -> Result<(), ASTError> {
+fn expect_children(expected: usize, got: &[Pair<Rule>]) -> Result<(), ASTError> {
     if expected != got.len() {
         // https://stackoverflow.com/a/60714285/9723960
         let caller_location = std::panic::Location::caller();
