@@ -19,11 +19,19 @@ mod test {
             for (i = 0; i < len(x); i = i + 1) {
                 x[i] = factorial(i+1);
             }
-
             return x;
+            "#,
+            r#"
+            x = {
+                a: "v1",
+                b: "v2",
+                c: "v3",
+                d: {
+                    a1: "v1_1",
+                    b1: [5]
+                }
+            };
             "#
-
-
         ];
 
         for test in tests {

@@ -50,7 +50,8 @@ pub enum ValueKind {
     Num(f64),
     String(String),
     ArrayInit(Box<Exp>),
-    Name(String)
+    Name(String),
+    Null
 }
 
 #[derive(Debug, Clone)]

@@ -50,6 +50,20 @@ mod test {
     }
 
     #[test]
+    fn test_null() {
+        let tests = vec![
+            r"null",
+            r"(null)",
+        ];
+
+        for test in tests {
+            let pairs = PuffinParser::parse(Rule::value, test).expect(test);
+            let last = pairs.last().unwrap();
+            assert_eq!(last.as_span().end(), test.len(), "{}", test);
+        }
+    }
+
+    #[test]
     fn test_return() {
         let tests = vec![
             r"return 5",
@@ -242,6 +256,39 @@ mod test {
 
         for test in tests {
             let pairs = PuffinParser::parse(Rule::loopnest, test).expect(test);
+            let last = pairs.last().unwrap();
+            assert_eq!(last.as_span().end(), test.len(), "{}", test);
+        }
+    }
+
+    #[test]
+    fn test_structure() {
+        let tests = vec![
+            r#"{};"#,
+            r#"{field:"value"};"#,
+            r#"{nested:{inner:"value"}};"#,
+        ];
+
+        for test in tests {
+            let pairs = PuffinParser::parse(Rule::statement, test).expect(test);
+            let last = pairs.last().unwrap();
+            assert_eq!(last.as_span().end(), test.len(), "{}", test);
+        }
+    }
+
+    #[test]
+    fn test_dot() {
+        let tests = vec![
+            r#"thing.property"#,
+            r#"thing.property.inner_property"#,
+            r#"thing.array[0].inner_property"#,
+            r#"(thing).inner_property"#,
+            r#"result().inner_property"#,
+            r#"{literal:"value"}.literal"#,
+        ];
+
+        for test in tests {
+            let pairs = PuffinParser::parse(Rule::exp, test).expect(test);
             let last = pairs.last().unwrap();
             assert_eq!(last.as_span().end(), test.len(), "{}", test);
         }

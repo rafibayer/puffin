@@ -154,7 +154,7 @@ fn build_loopnest(loopnest: Pair<Rule>) -> Result<LoopNestKind, ASTError> {
             expect_children(4, &for_parts)?;
             let init = build_statement(for_parts.remove(0))?;
             let cond = build_exp(for_parts.remove(0))?;
-            
+
             // "adv" (usually the i++ part) of the loop can be either an expression, or an assignment.
             // either way, we wrap it in a statement
             let adv = match for_parts[0].as_rule() {
@@ -221,6 +221,7 @@ fn build_value(next: Pair<Rule>) -> Result<ValueKind, ASTError> {
         Rule::string => build_string(child)?,
         Rule::array_init => ValueKind::ArrayInit(Box::new(build_exp(get_one(child)?)?)),
         Rule::name => ValueKind::Name(build_name(child)?),
+        Rule::null => ValueKind::Null,
         _ => return Err(unexpected_token(child)),
     })
 }
@@ -232,6 +233,7 @@ fn build_structure(structure: Pair<Rule>) -> Result<ValueKind, ASTError> {
 
     for field in inner {
         let mut contents = get_inner(field);
+        expect_children(2, &contents)?;
         fields.push(Field {
             name: build_name(contents.remove(0))?,
             exp: build_exp(contents.remove(0))?,

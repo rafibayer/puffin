@@ -36,7 +36,7 @@ sum = _{ product ~ (sum_op ~ (product | paren))* }
 product = _{ unary ~ (mul_op ~ (unary | paren))* }
 unary = _{ un_op? ~ (postfix | paren) }
 postfix = _{ (value | paren) ~ post_op? }
-value = { paren | structure | function | num | string | array_init | name }
+value = { paren | structure | function | num | string | array_init | null | name }
 
 log_op = {
     "||" |
@@ -85,6 +85,7 @@ fields = _{ field ~ "," ~ fields | field }
 field = { name ~ ":" ~ exp }
 
 string = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+null = { "null" }
 
 array_init = { "[" ~ exp ~ "]" }
 

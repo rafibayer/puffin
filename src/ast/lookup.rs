@@ -38,6 +38,7 @@ pub fn is_keyword(name: &str) -> bool {
         "return" => true,
         "for" => true,
         "while" => true,
+        "null" => true,
         _ => false
     }
 }

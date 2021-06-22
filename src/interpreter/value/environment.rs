@@ -1,9 +1,7 @@
-use std::cell::RefCell;
-use std::{collections::HashMap, rc::Rc};
-use crate::Rule;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::ast::node::*;
-use super::InterpreterError;
+use super::{InterpreterError, Value};
+
 
 
 #[derive(Debug, Clone)]
@@ -44,13 +42,4 @@ impl Environment {
                 }
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum Value {
-    Num(f64),
-    String(String),
-    Array(Vec<Value>),
-    Structure(HashMap<String, Value>),
-    Function{args: Vec<String>, block: Block, env: Environment}
 }
