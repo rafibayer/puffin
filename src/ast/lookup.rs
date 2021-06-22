@@ -1,32 +1,95 @@
 use super::node::*;
 use super::ASTError;
 
-
-pub fn infix(op: &str) -> Result<InfixOp, ASTError> {
+pub fn infix(op: &str) -> Result<TermKind, ASTError> {
     Ok(match op {
-        "<" => InfixOp::Lt,
-        "<=" => InfixOp::Le,
-        ">" => InfixOp::Gt,
-        ">=" => InfixOp::Ge,
-        "==" => InfixOp::Eq,
-        "!=" => InfixOp::Ne,
+        "||" => TermKind::Operator (
+            OperatorKind::Infix(InfixOp::Or),
+            Associativity::Left,
+            0,
+        ),
+        "&&" => TermKind::Operator (
+            OperatorKind::Infix(InfixOp::And),
+            Associativity::Left,
+            1,
+        ),
+        "==" => TermKind::Operator (
+            OperatorKind::Infix(InfixOp::Eq),
+            Associativity::Left,
+            2,
+        ),
+        "!=" => TermKind::Operator (
+            OperatorKind::Infix(InfixOp::Ne),
+            Associativity::Left,
+            2,
+        ),
+        "<" => TermKind::Operator (
+            OperatorKind::Infix(InfixOp::Lt),
+            Associativity::Left,
+            3,
+        ),
+        "<=" => TermKind::Operator (
+            OperatorKind::Infix(InfixOp::Le),
+            Associativity::Left,
+            3,
+        ),
+        ">" => TermKind::Operator (
+            OperatorKind::Infix(InfixOp::Gt),
+            Associativity::Left,
+            3,
+        ),
+        ">=" => TermKind::Operator (
+            OperatorKind::Infix(InfixOp::Ge),
+            Associativity::Left,
+            3,
+        ),
+        
 
-        "-" => InfixOp::Minus,
-        "+" => InfixOp::Plus,
+        "-" => TermKind::Operator (
+            OperatorKind::Infix(InfixOp::Minus),
+            Associativity::Left,
+            4,
+        ),
+        "+" => TermKind::Operator (
+            OperatorKind::Infix(InfixOp::Plus),
+            Associativity::Left,
+            4,
+        ),
 
-        "/" => InfixOp::Div,
-        "%" => InfixOp::Mod,
-        "*" => InfixOp::Mul,
+        "/" => TermKind::Operator (
+            OperatorKind::Infix(InfixOp::Div),
+            Associativity::Left,
+            5,
+        ),
+        "%" => TermKind::Operator (
+            OperatorKind::Infix(InfixOp::Mod),
+            Associativity::Left,
+            5,
+        ),
+        "*" => TermKind::Operator (
+            OperatorKind::Infix(InfixOp::Mul),
+            Associativity::Left,
+            5,
+        ),
 
-        _ => return Err(ASTError::InvalidOp(op.to_string()))
+        _ => return Err(ASTError::InvalidOp(op.to_string())),
     })
 }
 
-pub fn unary(op: &str) -> Result<Unop, ASTError> {
+pub fn unary(op: &str) -> Result<TermKind, ASTError> {
+
     Ok(match op {
-        "!" => Unop::Not,
-        "-" => Unop::Neg,
-        _ => return Err(ASTError::InvalidOp(op.to_string()))
+        "!" => TermKind::Operator (
+            OperatorKind::Unary(Unop::Not),
+            Associativity::Right,
+            6,
+        ),
+        "-" => TermKind::Operator (
+            OperatorKind::Unary(Unop::Neg),
+            Associativity::Right,
+            6,
+        ),
+        _ => return Err(ASTError::InvalidOp(op.to_string())),
     })
 }
 
@@ -39,6 +102,6 @@ pub fn is_keyword(name: &str) -> bool {
         "for" => true,
         "while" => true,
         "null" => true,
-        _ => false
+        _ => false,
     }
 }

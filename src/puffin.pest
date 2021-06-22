@@ -1,4 +1,5 @@
-// global rules, implict whitespace, and comments
+// global rules, implict whitespace, and comments.
+// both are silent, and produce no tokens
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
 

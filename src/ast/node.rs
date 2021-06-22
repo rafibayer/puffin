@@ -1,3 +1,9 @@
+use std::convert::TryInto;
+
+use crate::interpreter::InterpreterError;
+
+use super::ASTError;
+
 
 #[derive(Debug, Clone)]
 pub struct Program {
@@ -35,11 +41,16 @@ pub struct Exp {
     pub exp: Vec<TermKind>
 }
 
-
 #[derive(Debug, Clone)]
 pub enum TermKind {
-    Operator(OperatorKind),
+    Operator(OperatorKind, Associativity, usize),
     Value(ValueKind)
+}
+
+#[derive(Debug, Clone)]
+pub enum Associativity {
+    Left,
+    Right
 }
 
 #[derive(Debug, Clone)]
@@ -64,11 +75,6 @@ pub struct Field {
 #[derive(Debug, Clone)]
 pub struct Block {
     pub block: Vec<Statement>
-}
-
-#[derive(Debug, Clone)]
-pub struct Nest {
-    nest: NestKind
 }
 
 #[derive(Debug, Clone)]

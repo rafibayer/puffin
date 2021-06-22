@@ -200,10 +200,14 @@ fn build_exp(exp: Pair<Rule>) -> Result<Exp, ASTError> {
         terms.push(match next.as_rule() {
             Rule::value => TermKind::Value(build_value(next)?),
             Rule::log_op | Rule::comp_op | Rule::sum_op | Rule::mul_op => {
-                TermKind::Operator(OperatorKind::Infix(lookup::infix(next.as_str())?))
+                lookup::infix(next.as_str())?
             }
-            Rule::un_op => TermKind::Operator(OperatorKind::Unary(lookup::unary(next.as_str())?)),
-            Rule::post_op => TermKind::Operator(OperatorKind::Postfix(build_postfix(next)?)),
+            Rule::un_op => lookup::unary(next.as_str())?,
+            Rule::post_op => TermKind::Operator(
+                OperatorKind::Postfix(build_postfix(next)?),
+                Associativity::Right,
+                7, // highest precedence, rest are in lookup.rs
+            ),
             _ => return Err(unexpected_token(next)),
         });
     }

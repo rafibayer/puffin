@@ -16,6 +16,7 @@ pub struct Environment {
 
 impl Environment {
     pub fn new() -> Environment {
+        // get_builtins and the builtins hashset should probably both be static/lazy & cached
         let bindings = builtin::get_builtins();
         let builtins = bindings.keys().cloned().collect();
         Environment {
@@ -35,13 +36,13 @@ impl Environment {
         }
     }
 
-    pub fn bind(&mut self, name: String, value: &Value) -> Option<InterpreterError> {
+    pub fn bind(&mut self, name: String, value: &Value) -> Result<Value, InterpreterError> {
         if self.builtins.contains(&name) {
-            return Some(InterpreterError::BuiltinRebinding(name));
+            return Err(InterpreterError::BuiltinRebinding(name));
         }
         self.bindings.insert(name, value.clone());
 
-        None
+        Ok(Value::Null)
     }
 
     pub fn get(&self, name: String) -> Result<Value, InterpreterError> {

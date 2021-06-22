@@ -3,8 +3,21 @@ use std::process;
 
 use crate::interpreter::InterpreterError;
 
-use super::Builtin;
 use super::Value;
+
+pub struct Builtin(fn(Vec<Value>) -> Result<Value, InterpreterError>);
+
+impl std::fmt::Debug for Builtin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<Builtin Function>")
+    }
+}
+
+impl Clone for Builtin {
+    fn clone(&self) -> Self {
+        Builtin(self.0.clone())
+    }
+}
 
 // todo: replace with static or lazy-static
 pub fn get_builtins() -> HashMap<String, Value> {

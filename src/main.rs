@@ -1,4 +1,4 @@
-use puffin::{Parser, PuffinParser, Rule, ast, parser::utils::clean_print};
+use puffin::{Parser, PuffinParser, Rule, ast, interpreter, parser::utils::clean_print};
 use std::fs;
 
 
@@ -11,5 +11,6 @@ fn main() {
     let ast = ast::build_program(pairs.into_iter().next().unwrap()).unwrap();
     println!("{:#?}", ast);
 
-    
+    let result = interpreter::eval(ast);
+    println!("{:?}", result.unwrap());    
 }
