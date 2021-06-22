@@ -27,7 +27,7 @@ mod test {
 
         for test in tests {
             let parsed = parse(test);
-            ast(parsed).expect(test);
+            build_program(parsed).expect(test);
         }
 
     }

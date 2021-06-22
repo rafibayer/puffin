@@ -12,40 +12,59 @@ pub struct Statement {
 #[derive(Debug, Clone)]
 pub enum StatementKind {
     Return(Exp),
-    Assign{lhs: Exp, rhs: Exp},
+    Assign{lhs: Assingnable, rhs: Exp},
     Exp(Exp),
     Nest(NestKind)
 }
 
 #[derive(Debug, Clone)]
+pub struct Assingnable {
+    pub name: String,
+    pub assignable: Vec<AssignableKind>
+}
+
+#[derive(Debug, Clone)]
+pub enum AssignableKind {
+    ArrayIndex{index: Exp},
+    StructureField{field: String},
+}
+
+
+#[derive(Debug, Clone)]
 pub struct Exp {
-    pub exp: ExpKind
+    pub exp: Vec<TermKind>
 }
 
-#[derive(Debug, Clone)]
-pub enum ExpKind {
-    Paren(Box<Exp>),
-    Infix{term: Term, op_terms: Vec<(OpKind, Term)>},
-    Term(Term)
-}
-
-#[derive(Debug, Clone)]
-pub struct Term {
-    pub term: TermKind
-}
+// #[derive(Debug, Clone)]
+// pub enum ExpKind {
+//     PostOp(Box<Exp>, PostOp),
+//     Exp(Box<Exp>),
+//     Term(TermKind)
+// }
 
 #[derive(Debug, Clone)]
 pub enum TermKind {
+    Operator(OperatorKind),
+    Value(ValueKind)
+}
+
+#[derive(Debug, Clone)]
+pub enum ValueKind {
     Paren(Box<Exp>),
-    UnopUse{unop: UnopKind, term: Box<Term>},
-    Function{args: Vec<String>, body: Block},
-    FunctionCall{name: Box<Term>, exps: Vec<Exp>},
-    ArrayIndex{subscriptable: Box<Term>, exps: Vec<Exp>},
-    ArrayInit{size: Box<Exp>},
-    Name(String),
+    Structure(Vec<Field>),
+    Function{args: Vec<String>, block: Block},
     Num(f64),
     String(String),
+    ArrayInit(Box<Exp>),
+    Name(String)
 }
+
+#[derive(Debug, Clone)]
+pub struct Field {
+    name: String,
+    exp: Exp
+}
+
 
 #[derive(Debug, Clone)]
 pub struct Block {
@@ -70,6 +89,13 @@ pub enum CondNestKind {
 }
 
 #[derive(Debug, Clone)]
+pub enum OperatorKind {
+    Unary(Unop),
+    Infix(InfixOp),
+    Postfix(PostOp),
+}
+
+#[derive(Debug, Clone)]
 pub enum LoopNestKind {
     While{cond: Exp, block: Block},
     // todo: adv could be an expression too?
@@ -77,7 +103,14 @@ pub enum LoopNestKind {
 }
 
 #[derive(Debug, Clone)]
-pub enum OpKind {
+pub enum PostOp {
+    Subscript(Box<Exp>),
+    Call(Vec<Exp>),
+    Dot(String)
+}
+
+#[derive(Debug, Clone)]
+pub enum InfixOp {
     Mul,
     Mod,
     Div,
@@ -94,7 +127,7 @@ pub enum OpKind {
 }
 
 #[derive(Debug, Clone)]
-pub enum UnopKind {
+pub enum Unop {
     Not,
     Neg,
 }

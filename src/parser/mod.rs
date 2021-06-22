@@ -4,7 +4,7 @@ pub mod utils;
 extern crate pest;
 
 #[derive(Parser)]
-#[grammar = "puffin2.pest"]
+#[grammar = "puffin.pest"]
 pub struct PuffinParser;
 
 #[cfg(test)]

@@ -19,47 +19,79 @@ statement = {
 return_statment = { "return" ~ exp }
 assign_statment = { exp ~ "=" ~ exp }
 
-// expression: parenthesized expression, infix expression, or single term
 exp = {
-    infix |
-    term |
-    "(" ~ exp ~ ")" 
+    comparison ~ post_op |
+    comparison |
+    paren
 }
 
-// infix operator usage: term followed by 1 or more operators and terms
-infix = { term ~ (op ~ term)+ }
+paren = { "(" ~ exp ~ ")" }
 
-// term: ordered by precedence and number of tokens consumed
-term = {
-    unop_use |
-    function |
-    array_index |
-    array_init |
-    function_call |
-    name |
-    num |
-    string |
-    "(" ~ exp ~ ")" 
+// reverse precedence order 
+// https://en.wikipedia.org/wiki/Parsing_expression_grammar#Examples
+// https://pest.rs/book/intro.html
+comparison = _{ logical ~ (comp_op ~ (logical | paren))*}
+logical = _{ sum ~ (log_op ~ (sum | paren))*}
+sum = _{ product ~ (sum_op ~ (product | paren))* }
+product = _{ unary ~ (mul_op ~ (unary | paren))* }
+unary = _{ un_op? ~ (postfix | paren) }
+postfix = _{ (value | paren) ~ post_op? }
+value = { paren | structure | function | num | string | array_init | name }
+
+log_op = {
+    "||" |
+    "&&"
 }
+
+comp_op = {
+    "<" |
+    "<=" |
+    ">" |
+    ">=" |
+    "==" |
+    "!=" 
+}
+
+sum_op = {
+    "-" |
+    "+" 
+}
+
+mul_op = {
+    "/" |
+    "%" |
+    "*" 
+}
+
+un_op = {
+    "!" |
+    "-"
+}
+
+post_op = _{
+    subscript |
+    call |
+    dot
+}
+    subscript = { "[" ~ exp ~ "]" }
+    call = { "(" ~ exps ~ ")" }
+    dot = { "." ~ name }
 
 // numerical literal
 num = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 
-// arrays
-array_index = { subscriptable ~ "[" ~ exps ~ "]" }
-    subscriptable = { ("(" ~ exp ~ ")") | function_call | name }
-array_init = { "[" ~ exp ~ "]" }
-
-unop_use = { unop ~ term }
+structure = { "{" ~ fields* ~ "}"}
+fields = _{ field ~ "," ~ fields | field }
+field = { name ~ ":" ~ exp }
 
 string = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 
+array_init = { "[" ~ exp ~ "]" }
+
 // function definition, "fn" followed by 0 or more arg names followed by function body
 function = { "fn" ~ "(" ~ args ~ ")" ~ block }
-    function_call = { callable ~ "(" ~ exps ~ ")" }
-        callable = { ("(" ~ exp ~ ")") | name }
-    args = { name ~ "," ~ args | name | "" }
-    exps = { exp ~ "," ~ exps | exp | "" }
+    args = _{ name ~ "," ~ args | name | "" }
+    exps = _{ exp ~ "," ~ exps | exp | "" }
 
 block = { "{" ~ statement* ~ "}"}
 
@@ -87,24 +119,4 @@ nest = {
         while_block = { ("while" ~ exp ~ block) }
         for_block = { ("for" ~ "(" ~ statement ~ exp ~ ";" ~ (assign_statment | exp) ~ ")" ~ block) }
 
-// ordered from highest to lowest precedence
-op = {
-    "*" |
-    "%" |
-    "/" |
-    "+" |
-    "-" |
-    "<" |
-    ">" |
-    "<=" |
-    ">=" |
-    "==" |
-    "!=" |
-    "&&" |
-    "||" 
-}
 
-unop = {
-    "!" |
-    "-"
-}
