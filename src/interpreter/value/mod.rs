@@ -1,10 +1,10 @@
+use std::collections::HashMap;
 use std::convert::TryInto;
 use std::fmt::{Debug, Display, Write};
-use std::{collections::HashMap};
 
+use super::InterpreterError;
 use crate::ast::node::*;
 use crate::interpreter::unexpected_operator;
-use super::InterpreterError;
 
 mod builtin;
 pub mod environment;
@@ -19,7 +19,11 @@ pub enum Value {
     String(String),
     Array(Vec<Value>),
     Structure(HashMap<String, Value>),
-    Function{args: Vec<String>, block: Block, env: Environment},
+    Function {
+        args: Vec<String>,
+        block: Block,
+        env: Environment,
+    },
     Builtin(Builtin),
 }
 
@@ -30,23 +34,29 @@ impl Display for Value {
             Value::Num(n) => write!(f, "{}", n),
             Value::String(s) => write!(f, "{}", s),
             Value::Array(v) => {
-                let mut buf = String::new();
-                for e in v {
-                    buf.push_str(&format!("{}", e));
-                }
-                write!(f, "{}", buf)
-            },
+                let mut buf = String::from("[");
+                buf.push_str(
+                    &v.iter()
+                        .map(|e| format!("{}", e))
+                        .collect::<Vec<String>>()
+                        .join(", "),
+                );
+                write!(f, "{}]", buf)
+            }
             Value::Structure(s) => {
-                let mut buf = String::new();
-                for kv in s {
-                    buf.push_str(&format!("{}: {}", kv.0, kv.1));
-                }
-                write!(f, "{}", buf)
-            },
+                let mut buf = String::from("{");
+                buf.push_str(
+                    &s.iter()
+                        .map(|(k, v)| format!("{}: {}", k, v))
+                        .collect::<Vec<String>>()
+                        .join(",\n"),
+                );
+                write!(f, "{}}}", buf)
+            }
             Value::Function { args, block, env } => todo!(),
             Value::Builtin(b) => {
                 write!(f, "{:?}", b)
-            },
+            }
         }
     }
 }
@@ -57,7 +67,7 @@ impl TryInto<f64> for Value {
     fn try_into(self) -> Result<f64, Self::Error> {
         match self {
             Value::Num(n) => Ok(n),
-            _ => Err(InterpreterError::UnexpectedType(format!("{:?}", self)))
+            _ => Err(InterpreterError::UnexpectedType(format!("{:?}", self))),
         }
     }
 }

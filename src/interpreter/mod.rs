@@ -171,27 +171,24 @@ fn eval_assign(
     env.bind(name, &bound)
 }
 
-fn assign_drilldown(
-    assign_to: Value,
-    mut assignments: Vec<AssignableKind>,
-    rhs: Exp,
-    env: &mut Environment,
-) -> Result<Value, InterpreterError> {
+fn assign_drilldown(assign_to: Value, mut assignments: Vec<AssignableKind>, rhs: Exp, env: &mut Environment) -> Result<Value, InterpreterError> {
     if assignments.is_empty() {
         return eval_exp(rhs, env);
     }
     let next = assignments.remove(0);
     match next {
         AssignableKind::ArrayIndex { index } => {
-            if let Value::Array(arr) = &assign_to {
+            if let Value::Array(mut arr) = assign_to {
                 let index_val: f64 = eval_exp(index, env)?.try_into()?;
                 let new_arr = arr.clone();
-                return assign_drilldown(
+                arr[index_val as usize] = assign_drilldown(
                     new_arr[index_val as usize].clone(),
                     assignments,
                     rhs,
                     env,
-                );
+                )?;
+
+                return Ok(Value::Array(arr));
             }
             Err(unexpected_type(assign_to))
         }

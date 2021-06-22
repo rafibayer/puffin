@@ -12,5 +12,5 @@ fn main() {
     println!("{:#?}", ast);
 
     let result = interpreter::eval(ast);
-    println!("{:?}", result.unwrap());    
+    println!("{}", result.unwrap());    
 }

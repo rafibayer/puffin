@@ -5,17 +5,20 @@ use crate::interpreter::InterpreterError;
 
 use super::Value;
 
-pub struct Builtin(fn(Vec<Value>) -> Result<Value, InterpreterError>);
+pub struct Builtin{name: &'static str, body: fn(Vec<Value>) -> Result<Value, InterpreterError>}
 
 impl std::fmt::Debug for Builtin {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<Builtin Function>")
+        write!(f, "<Builtin Function: {}>", self.name)
     }
 }
 
 impl Clone for Builtin {
     fn clone(&self) -> Self {
-        Builtin(self.0.clone())
+        Builtin {
+            name: self.name.clone(),
+            body: self.body.clone(),
+        }
     }
 }
 
@@ -23,10 +26,10 @@ impl Clone for Builtin {
 pub fn get_builtins() -> HashMap<String, Value> {
     let builtins = vec![
         ("PI", Value::from(std::f64::consts::PI)),
-        ("len", Value::from(Builtin(builtin_len))),
-        ("print", Value::from(Builtin(builtin_print))),
-        ("println", Value::from(Builtin(builtin_println))),
-        ("error", Value::from(Builtin(builtin_error))),
+        ("len", Value::from(Builtin{name: "len", body: builtin_len})),
+        ("print", Value::from(Builtin{name: "print", body: builtin_print})),
+        ("println", Value::from(Builtin{name: "println", body: builtin_println})),
+        ("error", Value::from(Builtin{name: "error", body: builtin_error})),
     ];
     builtins
         .into_iter()
