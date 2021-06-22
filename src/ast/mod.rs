@@ -44,7 +44,7 @@ fn build_statement(statement: Pair<Rule>) -> Result<Statement, ASTError> {
         Rule::exp => Ok(Statement {
             statement: StatementKind::Exp(build_exp(child)?),
         }),
-        Rule::nest => todo!(),
+        Rule::nest => build_nest(child),
         _ => Err(unexpected_token(child)),
     }
 }
@@ -97,6 +97,87 @@ fn build_assignable(assignable: Pair<Rule>) -> Result<Assingnable, ASTError> {
     })
 }
 
+fn build_nest(nest_statement: Pair<Rule>) -> Result<Statement, ASTError> {
+    let inner = get_one(nest_statement)?;
+
+    Ok(match inner.as_rule() {
+        Rule::condnest => Statement {
+            statement: StatementKind::Nest(NestKind::CondNest(build_condnest(inner)?)),
+        },
+        Rule::loopnest => Statement {
+            statement: StatementKind::Nest(NestKind::LoopNest(build_loopnest(inner)?)),
+        },
+        _ => return Err(unexpected_token(inner)),
+    })
+}
+
+fn build_condnest(condnest: Pair<Rule>) -> Result<CondNestKind, ASTError> {
+    let inner = get_one(condnest)?;
+    match inner.as_rule() {
+        Rule::if_block | Rule::if_else_block => {
+            // to reduce redundancy, we handle if and ifelse the same, just parsing the else
+            // block and returning IfElse if we have to. Downside: we can't expect_children, since
+            // we need only 2 for if, and 3 for if else
+            let has_else = matches!(inner.as_rule(), Rule::if_else_block);
+            let mut if_parts = get_inner(inner);
+            let cond = build_exp(if_parts.remove(0))?;
+            let then = build_block(if_parts.remove(0))?;
+
+            if has_else {
+                let or_else = build_block(if_parts.remove(0))?;
+                return Ok(CondNestKind::IfElse {
+                    cond,
+                    then,
+                    or_else,
+                });
+            }
+
+            Ok(CondNestKind::If { cond, then })
+        }
+        _ => return Err(unexpected_token(inner)),
+    }
+}
+
+fn build_loopnest(loopnest: Pair<Rule>) -> Result<LoopNestKind, ASTError> {
+    let inner = get_one(loopnest)?;
+    match inner.as_rule() {
+        Rule::while_block => {
+            let mut while_parts = get_inner(inner);
+            expect_children(2, &while_parts)?;
+            let cond = build_exp(while_parts.remove(0))?;
+            let block = build_block(while_parts.remove(0))?;
+
+            Ok(LoopNestKind::While { cond, block })
+        }
+        Rule::for_block => {
+            let mut for_parts = get_inner(inner);
+            expect_children(4, &for_parts)?;
+            let init = build_statement(for_parts.remove(0))?;
+            let cond = build_exp(for_parts.remove(0))?;
+            
+            // "adv" (usually the i++ part) of the loop can be either an expression, or an assignment.
+            // either way, we wrap it in a statement
+            let adv = match for_parts[0].as_rule() {
+                Rule::assign_statment => build_assign(for_parts.remove(0))?,
+                Rule::exp => Statement {
+                    statement: StatementKind::Exp(build_exp(for_parts.remove(0))?),
+                },
+                _ => return Err(unexpected_token(for_parts.remove(0))),
+            };
+
+            let block = build_block(for_parts.remove(0))?;
+
+            Ok(LoopNestKind::For {
+                init: Box::new(init),
+                cond,
+                adv: Box::new(adv),
+                block,
+            })
+        }
+        _ => return Err(unexpected_token(inner)),
+    }
+}
+
 fn build_name(name: Pair<Rule>) -> Result<String, ASTError> {
     match name.as_rule() {
         Rule::name => {
@@ -105,7 +186,7 @@ fn build_name(name: Pair<Rule>) -> Result<String, ASTError> {
                 return Err(ASTError::InvalidName(val));
             }
             Ok(val)
-        },
+        }
         _ => Err(unexpected_token(name)),
     }
 }
@@ -248,8 +329,7 @@ fn get_inner(pair: Pair<Rule>) -> Vec<Pair<Rule>> {
 fn expect_children(expected: usize, got: &[Pair<Rule>]) -> Result<(), ASTError> {
     if expected != got.len() {
         // https://stackoverflow.com/a/60714285/9723960
-        let caller_location = std::panic::Location::caller();
-        let caller_line_number = caller_location.line();
+        let caller_line_number = std::panic::Location::caller().line();
         eprintln!("child mismatch: src\\ast\\mod.rs:{}", caller_line_number);
         return Err(ASTError::ChildMismatch {
             expected,
@@ -264,8 +344,7 @@ fn expect_children(expected: usize, got: &[Pair<Rule>]) -> Result<(), ASTError> 
 #[track_caller]
 fn unexpected_token(pair: Pair<Rule>) -> ASTError {
     // https://stackoverflow.com/a/60714285/9723960
-    let caller_location = std::panic::Location::caller();
-    let caller_line_number = caller_location.line();
+    let caller_line_number = std::panic::Location::caller().line();
     eprintln!("unexpected token: src\\ast\\mod.rs:{}", caller_line_number);
     ASTError::UnexpectedToken(format!(
         "{:?}: {}",
