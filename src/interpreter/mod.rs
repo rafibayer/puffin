@@ -57,10 +57,11 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
     let mut rpn_queue = shunting_yard::to_rpn(exp);
 
     let mut stack: Vec<Value> = Vec::new();
+    dbg!(&rpn_queue);
 
     // evaluate rpn
     while !rpn_queue.is_empty() {
-        let top = rpn_queue.remove(0);
+        let top = rpn_queue.remove(0).unwrap();
         match top {
             TermKind::Operator(op, _, _) => match op {
                 OperatorKind::Unary(unop) => {
@@ -74,7 +75,7 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                         }
                         Unop::Neg => {
                            
-                            let result: f64 = -next.try_into()?;
+                            let result: f64 = -(next.try_into()?);
                             stack.push(Value::Num(result));
                         }
                     }
@@ -84,8 +85,8 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                     // This serves as a type check, to make sure that the operators can be applied
                     // to the given values
 
-                    let left: f64 = stack.pop().unwrap().try_into()?;
                     let right: f64 = stack.pop().unwrap().try_into()?;
+                    let left: f64 = stack.pop().unwrap().try_into()?;
                    
                     stack.push(Value::Num(match infix {
                         InfixOp::Mul => left * right,
@@ -140,7 +141,6 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                                     stack.push(result);
                                 },
                                 _ => {
-                                    dbg!(rpn_queue);
                                     dbg!(stack.len());
 
                                     return Err(unexpected_type(next));
@@ -169,6 +169,7 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
         }
     }
 
+    dbg!(&stack);
     Ok(stack.pop().unwrap())
 }
 

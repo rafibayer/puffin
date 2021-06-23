@@ -1,18 +1,20 @@
+use std::collections::VecDeque;
+
 use super::*;
 
 // shunting yard algorithm
 // https://en.wikipedia.org/wiki/Shunting-yard_algorithm
-pub fn to_rpn(exp: Exp) -> Vec<TermKind> {
+pub fn to_rpn(exp: Exp) -> VecDeque<TermKind> {
     
     let mut op_stack: Vec<TermKind> = Vec::new();
-    let mut out_queue: Vec<TermKind> = Vec::new();
+    let mut out_queue: VecDeque<TermKind> = VecDeque::new();
 
     // while there are tokens to be read:
     for term in exp.exp {
         //  if the token is:
         match &term {
             // a number: put it into the output queue
-            TermKind::Value(_) => out_queue.push(term),
+            TermKind::Value(_) => out_queue.push_back(term),
             // an operator o1:
             TermKind::Operator (_, assoc, prec )=> {
                 let mut o2 = op_stack.last();
@@ -28,7 +30,7 @@ pub fn to_rpn(exp: Exp) -> Vec<TermKind> {
                     if let TermKind::Operator(_, _, o2_prec) = o2.unwrap() {
                         if o2_prec > prec || (o2_prec == prec && matches!(assoc, &Associativity::Left)) {
                             // pop o2 from the operator stack into the output queue
-                            out_queue.push(op_stack.pop().unwrap());
+                            out_queue.push_back(op_stack.pop().unwrap());
                             o2 = op_stack.last();
                         } else {
                             break;
@@ -48,7 +50,7 @@ pub fn to_rpn(exp: Exp) -> Vec<TermKind> {
     // while there are tokens on the operator stack:
     while !op_stack.is_empty() {
         // pop the operator from the operator stack onto the output queue
-        out_queue.push(op_stack.pop().unwrap());
+        out_queue.push_back(op_stack.pop().unwrap());
     }
 
     out_queue
