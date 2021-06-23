@@ -54,7 +54,6 @@ fn eval_statement(
     Ok(None)
 }
 
-
 fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> {
     let mut rpn_queue = shunting_yard::to_rpn(exp);
 
@@ -88,7 +87,6 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
 
                     let left: f64 = stack.remove(0).try_into()?;
                     let right: f64 = stack.remove(0).try_into()?;
-
                    
                     stack.push(Value::Num(match infix {
                         InfixOp::Mul => left * right,
@@ -129,7 +127,7 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                                         closure.bind(args[i].clone(), &eval_exp(exps[i].clone(), env)?)?;
                                     }
 
-                                    let result = eval_block(block, &mut closure)?;
+                                    let result = eval_block(block, &mut closure)?.unwrap_or(Value::Null);
                                     stack.push(result);
                                 },
                                 Value::Builtin(f) => {
@@ -191,15 +189,15 @@ fn eval_value(value: ValueKind, env: &mut Environment) -> Result<Value, Interpre
     }
 }
 
-fn eval_block(block: Block, env: &mut Environment) -> Result<Value, InterpreterError> {
+fn eval_block(block: Block, env: &mut Environment) -> Result<Option<Value>, InterpreterError> {
     for statement in block.block {
         match eval_statement(statement, env)? {
-            Some(return_value) => return Ok(return_value),
+            Some(return_value) => return Ok(Some(return_value)),
             None => {}
         }
     }
 
-    Ok(Value::Null)
+    Ok(None)
 }
 
 fn eval_assign(
@@ -277,7 +275,55 @@ fn assign_drilldown(assign_to: Value, mut assignments: Vec<AssignableKind>, rhs:
 }
 
 fn eval_nest(nest: NestKind, env: &mut Environment) -> Result<Option<Value>, InterpreterError> {
-    todo!()
+    match nest {
+        NestKind::CondNest(condnest) => {
+            match condnest {
+                CondNestKind::IfElse { cond, then, or_else } => {
+                    let cond_value: f64 = eval_exp(cond, env)?.try_into()?;
+                    if cond_value as i64 != 0 {
+                        let then_res = eval_block(then, env)?;
+                        return Ok(then_res);
+                    } 
+                    let or_else_res = eval_block(or_else, env)?;
+                    return Ok(or_else_res);
+                },
+                CondNestKind::If { cond, then } => {
+                    let cond_value: f64 = eval_exp(cond, env)?.try_into()?;
+                    if cond_value as i64 != 0 {
+                        let then_res = eval_block(then, env)?;
+                        return Ok(then_res);
+                    }
+                    return Ok(None);
+                },
+            }
+        },
+        NestKind::LoopNest(loopnest) => {
+            match loopnest {
+                LoopNestKind::While { cond, block } => {
+                    let mut while_cond: f64 = eval_exp(cond.clone(), env)?.try_into()?;
+                    while while_cond as i64 != 0 {
+                        if let Some(return_result) = eval_block(block.clone(), env)? {
+                            return Ok(Some(return_result));
+                        }
+                        while_cond = eval_exp(cond.clone(), env)?.try_into()?;
+                    }
+                    Ok(None)
+                },
+                LoopNestKind::For { init, cond, adv, block } =>{
+                    eval_statement(*init, env)?;
+                    let mut for_cond: f64 = eval_exp(cond.clone(), env)?.try_into()?;
+                    while for_cond as i64 != 0 {
+                        if let Some(return_result) = eval_block(block.clone(), env)? {
+                            return Ok(Some(return_result));
+                        }
+                        eval_statement(*adv.clone(), env)?;
+                        for_cond = eval_exp(cond.clone(), env)?.try_into()?;
+                    }
+                    Ok(None)
+                },
+            }
+        },
+    }
 }
 
 #[track_caller]
