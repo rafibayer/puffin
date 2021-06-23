@@ -1,7 +1,8 @@
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::process;
 
-use crate::interpreter::InterpreterError;
+use crate::interpreter::{InterpreterError, unexpected_type};
 
 use super::Value;
 
@@ -67,6 +68,28 @@ pub fn get_builtins() -> HashMap<String, Value> {
                 body: builtin_error,
             }),
         ),
+        (
+            "sin",
+            Value::Builtin(Builtin{
+                name: "sin", body: |v| builtin_floatops(v, f64::sin)
+            }),
+        ),
+        (
+            "cos",
+            Value::Builtin(Builtin{
+                name: "cos", body: |v| builtin_floatops(v, f64::cos)
+            }),
+        ),(
+            "tan",
+            Value::Builtin(Builtin{
+                name: "tan", body: |v| builtin_floatops(v, f64::tan)
+            }),
+        ),(
+            "sqrt",
+            Value::Builtin(Builtin{
+                name: "sqrt", body: |v| builtin_floatops(v, f64::sqrt)
+            }),
+        ),
     ];
     builtins
         .into_iter()
@@ -75,19 +98,12 @@ pub fn get_builtins() -> HashMap<String, Value> {
 }
 
 fn builtin_len(v: Vec<Value>) -> Result<Value, InterpreterError> {
-    if v.len() != 1 {
-        return Err(InterpreterError::ArgMismatch {
-            expected: 1,
-            got: v.len(),
-        });
-    }
-
-    let arg = &v[0];
+    let arg = get_one(v)?;
     match arg {
         Value::String(s) => Ok(Value::from(s.len() as f64)),
         Value::Array(a) => Ok(Value::from(a.len() as f64)),
         Value::Structure(s) => Ok(Value::from(s.len() as f64)),
-        _ => Err(InterpreterError::UnexpectedType(format!("{:?}", arg))),
+        _ => Err(unexpected_type(arg.clone())),
     }
 }
 
@@ -115,4 +131,19 @@ where
     for e in &v {
         f(e);
     }
+}
+
+fn builtin_floatops<F>(v: Vec<Value>, f: F) -> Result<Value, InterpreterError>
+where F: Fn(f64) -> f64 {
+    let arg = get_one(v)?;
+    let float: f64 = arg.try_into()?;
+    Ok(Value::from(f(float)))
+}
+
+fn get_one(v: Vec<Value>) -> Result<Value, InterpreterError> {
+    if v.len() != 1 {
+        return Err(InterpreterError::ArgMismatch{ expected: 1, got: v.len() })
+    }
+
+    return Ok(v[0].clone())
 }

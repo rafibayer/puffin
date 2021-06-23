@@ -59,6 +59,7 @@ pub fn infix(op: InfixOp, lhs: Value, rhs: Value) -> Result<Value, InterpreterEr
             Value::Num((lhs_float >= rhs_float) as u32 as f64)
         },
         InfixOp::Eq => {
+            // Value supports eq
             Value::Num((lhs == rhs) as u32 as f64)
         },
         InfixOp::Ne => {
