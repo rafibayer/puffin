@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-use crate::interpreter::InterpreterError;
+use crate::interpreter::{self, InterpreterError, value::environment};
 
 use super::ASTError;
 

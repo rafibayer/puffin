@@ -205,7 +205,7 @@ fn build_exp(exp: Pair<Rule>) -> Result<Exp, ASTError> {
             Rule::un_op => lookup::unary(next.as_str())?,
             Rule::post_op => TermKind::Operator(
                 OperatorKind::Postfix(build_postfix(next)?),
-                Associativity::Right,
+                Associativity::Left,
                 7, // highest precedence, rest are in lookup.rs
             ),
             _ => return Err(unexpected_token(next)),

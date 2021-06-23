@@ -4,7 +4,7 @@ use std::fmt::{Debug, Display, Write};
 
 use super::InterpreterError;
 use crate::ast::node::*;
-use crate::interpreter::unexpected_operator;
+use crate::interpreter::{unexpected_operator, unexpected_type};
 
 mod builtin;
 pub mod environment;
@@ -22,10 +22,11 @@ pub enum Value {
     Function {
         args: Vec<String>,
         block: Block,
-        env: Environment,
+        closure: Environment,
     },
     Builtin(Builtin),
 }
+
 
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -37,7 +38,7 @@ impl Display for Value {
                 let mut buf = String::from("[");
                 buf.push_str(
                     &v.iter()
-                        .map(|e| format!("{}", e))
+                        .map(|e| e.to_string())
                         .collect::<Vec<String>>()
                         .join(", "),
                 );
@@ -49,11 +50,14 @@ impl Display for Value {
                     &s.iter()
                         .map(|(k, v)| format!("{}: {}", k, v))
                         .collect::<Vec<String>>()
-                        .join(",\n"),
+                        .join(", "),
                 );
                 write!(f, "{}}}", buf)
             }
-            Value::Function { args, block, env } => todo!(),
+            Value::Function { args, block, closure: env } => {
+                let argstr = args.join(", ");
+                write!(f, "<fn({})>", argstr)
+            },
             Value::Builtin(b) => {
                 write!(f, "{:?}", b)
             }
@@ -67,10 +71,11 @@ impl TryInto<f64> for Value {
     fn try_into(self) -> Result<f64, Self::Error> {
         match self {
             Value::Num(n) => Ok(n),
-            _ => Err(InterpreterError::UnexpectedType(format!("{:?}", self))),
+            _=> Err(unexpected_type(self))
         }
     }
 }
+
 
 impl TryInto<ValueKind> for TermKind {
     type Error = InterpreterError;

@@ -1,4 +1,4 @@
-use std::{convert::TryInto, f64::EPSILON, usize};
+use std::{collections::HashMap, convert::TryInto, f64::EPSILON, usize};
 
 use crate::ast::node::*;
 use value::{Environment, Value};
@@ -10,7 +10,6 @@ pub mod value;
 pub enum InterpreterError {
     UnboundName(String),
     ArgMismatch {
-        name: String,
         expected: usize,
         got: usize,
     },
@@ -55,11 +54,11 @@ fn eval_statement(
     Ok(None)
 }
 
+
 fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> {
     let mut rpn_queue = shunting_yard::to_rpn(exp);
-    dbg!(&rpn_queue);
 
-    let mut stack: Vec<TermKind> = Vec::new();
+    let mut stack: Vec<Value> = Vec::new();
 
     // evaluate rpn
     while !rpn_queue.is_empty() {
@@ -67,18 +66,18 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
         match top {
             TermKind::Operator(op, _, _) => match op {
                 OperatorKind::Unary(unop) => {
-                    let next = eval_value(stack.remove(0).try_into()?, env)?;
+                    let next = stack.remove(0);
                     
                     match unop {
                         Unop::Not => {
                             let float: f64 = next.try_into()?;
-                            let result = ValueKind::Num(!(float as i32 != 0) as i32 as f64);
-                            stack.push(TermKind::Value(result));
+                            let result = !(float as i32 != 0) as i32 as f64;
+                            stack.push(Value::Num(result));
                         }
                         Unop::Neg => {
                            
-                            let result = ValueKind::Num(-next.try_into()?);
-                            stack.push(TermKind::Value(result));
+                            let result: f64 = -next.try_into()?;
+                            stack.push(Value::Num(result));
                         }
                     }
                 },
@@ -87,11 +86,11 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                     // This serves as a type check, to make sure that the operators can be applied
                     // to the given values
 
-                    let left: f64 = eval_value(stack.remove(0).try_into()?, env)?.try_into()?;
-                    let right: f64 = eval_value(stack.remove(0).try_into()?, env)?.try_into()?;
+                    let left: f64 = stack.remove(0).try_into()?;
+                    let right: f64 = stack.remove(0).try_into()?;
 
                    
-                    stack.push(TermKind::Value(ValueKind::Num(match infix {
+                    stack.push(Value::Num(match infix {
                         InfixOp::Mul => left * right,
                         InfixOp::Mod => left % right,
                         InfixOp::Div => left / right,
@@ -105,35 +104,79 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                         InfixOp::Ne => ((left - right) > EPSILON) as u32 as f64,
                         InfixOp::And => ((left > EPSILON) && (right > EPSILON)) as u32 as f64,
                         InfixOp::Or => ((left > EPSILON) || (right > EPSILON)) as u32 as f64,
-                    })));
+                    }));
                 }
                 OperatorKind::Postfix(postop) => {
-                    let left: f64 = eval_value(stack.remove(0).try_into()?, env)?.try_into()?;
+                    let next = stack.remove(0);
                     match postop {
-                        PostOp::Subscript(exp) => todo!(),
-                        PostOp::Call(args) => todo!(),
-                        PostOp::Dot(name) => todo!(),
+                        PostOp::Subscript(exp) => {
+                            match next {
+                                Value::Array(arr) => {
+                                    let index: f64 = eval_exp(*exp, env)?.try_into()?;
+                                    stack.push(arr[index as usize].clone());
+                                },
+                                _ => return Err(unexpected_type(next))
+                            }
+                        },
+                        PostOp::Call(exps) => {
+                            match next {
+                                Value::Function { args, block, mut closure } => {
+                                    if exps.len() != args.len() {
+                                        return Err(InterpreterError::ArgMismatch{ expected: args.len(), got: exps.len() })
+                                    }
+
+                                    for i in 0..args.len() {
+                                        closure.bind(args[i].clone(), &eval_exp(exps[i].clone(), env)?)?;
+                                    }
+
+                                    let result = eval_block(block, &mut closure)?;
+                                    stack.push(result);
+                                },
+                                Value::Builtin(f) => {
+                                    let mut actuals = Vec::with_capacity(exps.len());
+                                    for actual in exps {
+                                        actuals.push(eval_exp(actual, env)?);
+                                    }
+
+                                    let result = (f.body)(actuals)?;
+                                    stack.push(result);
+                                },
+                                _ => return Err(unexpected_type(next))
+                            }
+                        },
+                        PostOp::Dot(name) => {
+                            match next {
+                                Value::Structure(map) => {
+
+                                }
+                                _ => return Err(unexpected_type(next))
+                            } 
+                        },
                     }
                 },
             },
-            TermKind::Value(_) => {
-                stack.push(top);
+            TermKind::Value(v) => {
+                stack.push(eval_value(v, env)?);
             }
         }
     }
 
-    let result = stack.remove(0);
-    match result {
-        TermKind::Operator(op, _, _) => Err(unexpected_operator(op)),
-        TermKind::Value(v) => eval_value(v, env),
-    }
+    Ok(stack.remove(0))
 }
 
 fn eval_value(value: ValueKind, env: &mut Environment) -> Result<Value, InterpreterError> {
     match value {
         ValueKind::Paren(exp) => eval_exp(*exp, env),
-        ValueKind::Structure(_) => todo!(),
-        ValueKind::Function { args, block } => todo!(),
+        ValueKind::Structure(fields) => {
+            let mut map = HashMap::new();
+            for field in fields {
+                map.insert(field.name, eval_exp(field.exp, env)?);
+            }
+            Ok(Value::Structure(map))
+        },
+        ValueKind::Function { args, block } => {
+            Ok(Value::Function{ args, block, closure: env.clone() })
+        },
         ValueKind::Num(n) => Ok(Value::Num(n)),
         ValueKind::String(string) => Ok(Value::String(string)),
         ValueKind::ArrayInit(size_exp) => {
@@ -146,6 +189,17 @@ fn eval_value(value: ValueKind, env: &mut Environment) -> Result<Value, Interpre
         },
         ValueKind::Null => Ok(Value::Null),
     }
+}
+
+fn eval_block(block: Block, env: &mut Environment) -> Result<Value, InterpreterError> {
+    for statement in block.block {
+        match eval_statement(statement, env)? {
+            Some(return_value) => return Ok(return_value),
+            None => {}
+        }
+    }
+
+    Ok(Value::Null)
 }
 
 fn eval_assign(
@@ -162,7 +216,15 @@ fn eval_assign(
         // we cannot re-borrow env for the exp eval, so we clone it first,
         // then we bind the name
         let mut env_clone = env.clone();
-        return env.bind(name, &eval_exp(rhs, &mut env_clone)?);
+        let value = eval_exp(rhs, &mut env_clone)?;
+
+        // if we are binding a function to a name, bind function to it's own name in it's closure
+        if let Value::Function{args, block, mut closure} = value.clone() {
+            closure.bind(name.clone(), &value)?;
+            return env.bind(name, &Value::Function{ args, block, closure})
+        }
+        
+        return env.bind(name, &value);
     }
 
     let mut bound = env.get(name.clone())?;
@@ -192,7 +254,25 @@ fn assign_drilldown(assign_to: Value, mut assignments: Vec<AssignableKind>, rhs:
             }
             Err(unexpected_type(assign_to))
         }
-        AssignableKind::StructureField { field } => todo!(),
+        AssignableKind::StructureField { field } => {
+            if let Value::Structure(mut structure) = assign_to {
+                let mut new_struct = structure.clone();
+
+                // either assign to substruct
+                let assign_to = match new_struct.remove(&field) {
+                    Some(f) => f,
+                    // or create the new struct
+                    None => Value::Structure(HashMap::new()),
+                };
+                structure.insert(field,
+                    assign_drilldown(assign_to, assignments, rhs, env)?
+                );
+
+                return Ok(Value::Structure(structure));
+            }
+            Err(unexpected_type(assign_to))
+
+        },
     }
 }
 
@@ -200,7 +280,10 @@ fn eval_nest(nest: NestKind, env: &mut Environment) -> Result<Option<Value>, Int
     todo!()
 }
 
+#[track_caller]
 fn unexpected_type(value: Value) -> InterpreterError {
+    let caller_line_number = std::panic::Location::caller().line();
+    eprintln!("unexpected type: {}:{}", std::panic::Location::caller().file(), caller_line_number);
     InterpreterError::UnexpectedType(format!("{:?}", value))
 }
 
