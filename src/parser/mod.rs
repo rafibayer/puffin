@@ -1,8 +1,21 @@
+use std::fmt::format;
+
+use pest::error::Error;
+
 extern crate pest;
 
 #[derive(Parser)]
 #[grammar = "puffin.pest"]
 pub struct PuffinParser;
+
+pub fn line_col(err: Error<Rule>) -> String {
+    match err.line_col {
+        pest::error::LineColLocation::Pos(p) => format!("line {}:{}", p.0, p.1),
+        pest::error::LineColLocation::Span(start, end) => {
+            format!("Span: {:?} -> {:?}", start, end)
+        }
+    }
+}
 
 #[cfg(test)]
 mod test {
@@ -10,7 +23,6 @@ mod test {
     use pest::Parser;
 
     use super::*;
-    
 
     #[test]
     fn test_program() {
@@ -48,10 +60,7 @@ mod test {
 
     #[test]
     fn test_null() {
-        let tests = vec![
-            r"null",
-            r"(null)",
-        ];
+        let tests = vec![r"null", r"(null)"];
 
         for test in tests {
             let pairs = PuffinParser::parse(Rule::value, test).expect(test);
@@ -62,11 +71,7 @@ mod test {
 
     #[test]
     fn test_return() {
-        let tests = vec![
-            r"return 5",
-            r"return arr[5]",
-            r"return arr[5] + 5",
-        ];
+        let tests = vec![r"return 5", r"return arr[5]", r"return arr[5] + 5"];
 
         for test in tests {
             let pairs = PuffinParser::parse(Rule::return_statment, test).expect(test);
@@ -130,7 +135,6 @@ mod test {
             let pairs = PuffinParser::parse(Rule::array_init, test).unwrap();
             let last = pairs.last().unwrap();
             assert_eq!(last.as_span().end(), test.len(), "{}", test);
-            
         }
     }
 
@@ -208,7 +212,7 @@ mod test {
             r"(func())()",
             r"arr[5]()",
             r"f()()()()()()()()",
-            r"fn(a){}(b)"
+            r"fn(a){}(b)",
         ];
 
         for test in tests {
@@ -315,9 +319,7 @@ mod test {
     #[ignore]
     #[test]
     fn test() {
-        let tests = vec![
-            r"case;",
-        ];
+        let tests = vec![r"case;"];
 
         for test in tests {
             let pairs = PuffinParser::parse(Rule::program, test).expect(test);

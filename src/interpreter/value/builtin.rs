@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::io::Read;
 use std::{io, process};
 
 use crate::interpreter::{InterpreterError, unexpected_type};
@@ -91,6 +90,11 @@ pub fn get_builtins() -> HashMap<String, Value> {
                 name: "sqrt", body: |v| builtin_floatops(v, f64::sqrt)
             }),
         ),(
+            "abs",
+            Value::Builtin(Builtin{
+                name: "abs", body: |v| builtin_floatops(v, f64::abs)
+            }),
+        ),(
             "input_str",
             Value::Builtin(Builtin{
                 name: "input_str", body: |v| builtin_input(v, InputType::String)
@@ -129,9 +133,8 @@ fn builtin_println(v: Vec<Value>) -> Result<Value, InterpreterError> {
 }
 
 fn builtin_error(v: Vec<Value>) -> Result<Value, InterpreterError> {
-    eprintln!("Fatal Error: ");
-    output(v, |e| eprintln!("{} ", e));
-    process::exit(1);
+    output(v, |e| eprintln!("ERR: {} ", e));
+    Err(InterpreterError::RuntimeError)
 }
 
 fn output<F>(v: Vec<Value>, f: F)

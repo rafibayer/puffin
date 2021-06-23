@@ -18,6 +18,7 @@ pub enum InterpreterError {
     BuiltinRebinding(String),
     UnexepectedOperator(String),
     IOError(String),
+    RuntimeError,
 }
 
 impl error::Error for InterpreterError {}
@@ -323,10 +324,10 @@ fn eval_nest(nest: NestKind, env: &mut Environment) -> Result<Option<Value>, Int
     }
 }
 
-#[track_caller]
+//#[track_caller]
 fn unexpected_type(value: Value) -> InterpreterError {
-    let caller = std::panic::Location::caller();
-    eprintln!("unexpected type: {:#?}, {}:{}", &value, caller.file(), caller.line());
+    //let caller = std::panic::Location::caller();
+    //eprintln!("unexpected type: {:#?}, {}:{}", &value, caller.file(), caller.line());
     InterpreterError::UnexpectedType(format!("{:?}", value))
 }
 

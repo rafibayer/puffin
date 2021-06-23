@@ -27,7 +27,7 @@ extern crate pest_derive;
 pub mod parser;
 pub mod ast;
 pub mod interpreter;
-use std::fs;
+use std::{fs, process};
 
 use interpreter::value::Value;
 pub use parser::{Rule, PuffinParser};
@@ -70,11 +70,20 @@ impl Config {
 }
 
 pub fn run(config: Config) -> Value {
-    let contents = fs::read_to_string(config.filename)
-        .expect("Read failed.");
-    let parsed = PuffinParser::parse(Rule::program, &contents)
-        .expect("Parse failed.");
-    let program = ast::build_program(parsed.into_iter().next().unwrap())
-        .expect("AST failed.");
-    interpreter::eval(program).expect("exec failed.")
+    let contents = fs::read_to_string(config.filename).unwrap_or_else(|err| {
+        eprintln!("Failed to read file: {:#?}", err);
+        process::exit(1);
+    });
+    let parsed = PuffinParser::parse(Rule::program, &contents).unwrap_or_else(|err| {
+        eprintln!("Parser Error: {}", parser::line_col(err));
+        process::exit(1);
+    });
+    let program = ast::build_program(parsed.into_iter().next().unwrap()).unwrap_or_else(|err| {
+        eprintln!("AST Error: {:#?}", err);
+        process::exit(1);
+    });
+    interpreter::eval(program).unwrap_or_else(|err| {
+        eprintln!("Runtime Error: {:#?}", err);
+        process::exit(1);
+    })
 }
