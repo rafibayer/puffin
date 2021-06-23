@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryInto, error, f64::EPSILON, fmt::Display, usize};
+use std::{borrow::{Borrow, BorrowMut}, cell::RefCell, collections::HashMap, convert::TryInto, error, f64::EPSILON, fmt::Display, usize};
 
 use crate::ast::node::*;
 use value::{Environment, Value};
@@ -57,7 +57,6 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
     let mut rpn_queue = shunting_yard::to_rpn(exp);
 
     let mut stack: Vec<Value> = Vec::new();
-    dbg!(&rpn_queue);
 
     // evaluate rpn
     while !rpn_queue.is_empty() {
@@ -105,7 +104,7 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                     }));
                 }
                 OperatorKind::Postfix(postop) => {
-                    let next = stack.pop().unwrap();
+                    let mut next = stack.pop().unwrap();
                     match postop {
                         PostOp::Subscript(exp) => {
                             match next {
@@ -117,18 +116,21 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                             }
                         },
                         PostOp::Call(exps) => {
-                            match next {
-                                Value::Function { args, block, closure } => {
+                            match next.clone() {
+                                Value::Closure { self_name, args, block, mut environment } => {
                                     if exps.len() != args.len() {
                                         return Err(InterpreterError::ArgMismatch{ expected: args.len(), got: exps.len() })
                                     }
-                                    let mut subenv = closure.clone();
 
                                     for i in 0..args.len() {
-                                        subenv.bind(args[i].clone(), eval_exp(exps[i].clone(), env)?)?;
+                                        environment.bind(args[i].clone(), eval_exp(exps[i].clone(), env)?)?;
                                     }
 
-                                    let result = eval_block(block, &mut subenv)?.unwrap_or(Value::Null);
+                                    if let Some(self_name) = self_name {
+                                        environment.bind(self_name.clone(), next.clone())?;
+                                    }
+
+                                    let result = eval_block(block.clone(), &mut environment)?.unwrap_or(Value::Null);
                                     stack.push(result);
                                 },
                                 Value::Builtin(f) => {
@@ -141,8 +143,6 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                                     stack.push(result);
                                 },
                                 _ => {
-                                    dbg!(stack.len());
-
                                     return Err(unexpected_type(next));
                                 }
                             }
@@ -169,7 +169,6 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
         }
     }
 
-    dbg!(&stack);
     Ok(stack.pop().unwrap())
 }
 
@@ -183,8 +182,9 @@ fn eval_value(value: ValueKind, env: &mut Environment) -> Result<Value, Interpre
             }
             Ok(Value::Structure(map))
         },
-        ValueKind::Function { args, block } => {
-            Ok(Value::Function{ args, block, closure: env.clone() })
+        ValueKind::FunctionDef { args, block } => {
+            // functions evaluate to a closure that captures the local environment
+            Ok(Value::Closure{ self_name: None, args, block, environment: env.clone() })
         },
         ValueKind::Num(n) => Ok(Value::Num(n)),
         ValueKind::String(string) => Ok(Value::String(string)),
@@ -221,18 +221,17 @@ fn eval_assign(
     // simple assignment to name (a = something),
     // no subassignment (like a[5], or a.b)
     if subassignment.is_empty() {
-        // we cannot re-borrow env for the exp eval, so we clone it first,
-        // then we bind the name
-        let mut value = eval_exp(rhs, env)?;
+        let value = eval_exp(rhs, env)?;
 
-        // if we are binding a function to a name, bind function to it's own name in it's closure
-        if let Value::Function{args, block, mut closure} = value.clone() {
-            closure.bind(name.clone(), value)?;
-            value = Value::Function{ args, block, closure };
-            return env.bind(name.clone(), value);
+        if let Value::Closure { self_name, args, block, environment } = value {
+            let func_bind = Value::Closure{ self_name: Some(name.clone()), args, block, environment };
+            return env.bind(name, func_bind);
         }
-        
+
+
         return env.bind(name, value);
+
+        
     }
 
     let mut bound = env.get(name.clone())?;
@@ -279,7 +278,6 @@ fn assign_drilldown(assign_to: Value, mut assignments: Vec<AssignableKind>, rhs:
                 return Ok(Value::Structure(structure));
             }
             Err(unexpected_type(assign_to))
-
         },
     }
 }

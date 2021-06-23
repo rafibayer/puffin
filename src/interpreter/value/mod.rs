@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::fmt::{Debug, Display};
@@ -19,10 +20,11 @@ pub enum Value {
     String(String),
     Array(Vec<Value>),
     Structure(HashMap<String, Value>),
-    Function {
+    Closure {
+        self_name: Option<String>,
         args: Vec<String>,
         block: Block,
-        closure: Environment,
+        environment: Environment,
     },
     Builtin(Builtin),
 }
@@ -54,7 +56,7 @@ impl Display for Value {
                 );
                 write!(f, "{}}}", buf)
             }
-            Value::Function { args, block, .. } => {
+            Value::Closure { args, block, .. } => {
                 let argstr = args.join(", ");
                 write!(f, "<fn({}) {{{:#?}}}> ", argstr, block)
             },

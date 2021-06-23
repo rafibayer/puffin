@@ -1,4 +1,6 @@
-use std::{collections::{HashMap, HashSet}};
+use std::{borrow::BorrowMut, collections::{HashMap, HashSet}};
+
+use Value::Closure;
 
 use super::{InterpreterError, Value, builtin};
 
@@ -29,7 +31,6 @@ impl Environment {
             return Err(InterpreterError::BuiltinRebinding(name));
         }
         self.bindings.insert(name, value);
-
         Ok(Value::Null)
     }
 

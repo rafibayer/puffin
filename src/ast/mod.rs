@@ -266,7 +266,7 @@ fn build_function(function: Pair<Rule>) -> Result<ValueKind, ASTError> {
 
     let block = build_block(inner.remove(0))?;
 
-    Ok(ValueKind::Function { args, block })
+    Ok(ValueKind::FunctionDef { args, block })
 }
 
 fn build_block(statements: Pair<Rule>) -> Result<Block, ASTError> {

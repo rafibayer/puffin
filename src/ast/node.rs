@@ -49,7 +49,7 @@ pub enum Associativity {
 pub enum ValueKind {
     Paren(Box<Exp>),
     Structure(Vec<Field>),
-    Function { args: Vec<String>, block: Block },
+    FunctionDef { args: Vec<String>, block: Block },
     Num(f64),
     String(String),
     ArrayInit(Box<Exp>),
