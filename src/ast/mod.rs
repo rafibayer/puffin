@@ -1,3 +1,5 @@
+use std::{error, fmt::Display};
+
 use crate::Rule;
 use pest::iterators::Pair;
 
@@ -18,6 +20,8 @@ pub enum ASTError {
     InvalidName(String),
     DuplicateArg(String),
 }
+
+impl error::Error for ASTError {}
 
 pub fn build_program(program: Pair<Rule>) -> Result<Program, ASTError> {
     let mut statements: Vec<Statement> = Vec::new();
@@ -134,7 +138,7 @@ fn build_condnest(condnest: Pair<Rule>) -> Result<CondNestKind, ASTError> {
 
             Ok(CondNestKind::If { cond, then })
         }
-        _ => return Err(unexpected_token(inner)),
+        _ => Err(unexpected_token(inner)),
     }
 }
 
@@ -174,7 +178,7 @@ fn build_loopnest(loopnest: Pair<Rule>) -> Result<LoopNestKind, ASTError> {
                 block,
             })
         }
-        _ => return Err(unexpected_token(inner)),
+        _ => Err(unexpected_token(inner)),
     }
 }
 
@@ -357,4 +361,10 @@ fn unexpected_token(pair: Pair<Rule>) -> ASTError {
         pair.as_rule(),
         pair.as_str().to_string()
     ))
+}
+
+impl Display for ASTError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#}", self)
+    }
 }

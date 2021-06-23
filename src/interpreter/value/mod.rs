@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::fmt::{Debug, Display, Write};
+use std::fmt::{Debug, Display};
 
 use super::InterpreterError;
 use crate::ast::node::*;
@@ -54,9 +54,9 @@ impl Display for Value {
                 );
                 write!(f, "{}}}", buf)
             }
-            Value::Function { args, block, closure: env } => {
+            Value::Function { args, block, .. } => {
                 let argstr = args.join(", ");
-                write!(f, "<fn({})>", argstr)
+                write!(f, "<fn({}) {{{:#?}}}> ", argstr, block)
             },
             Value::Builtin(b) => {
                 write!(f, "{:?}", b)

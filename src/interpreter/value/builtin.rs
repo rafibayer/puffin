@@ -19,8 +19,8 @@ impl std::fmt::Debug for Builtin {
 impl Clone for Builtin {
     fn clone(&self) -> Self {
         Builtin {
-            name: self.name.clone(),
-            body: self.body.clone(),
+            name: self.name,
+            body: self.body,
         }
     }
 }

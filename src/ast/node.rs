@@ -1,92 +1,90 @@
-use std::convert::TryInto;
-
-use crate::interpreter::{self, InterpreterError, value::environment};
-
-use super::ASTError;
-
-
 #[derive(Debug, Clone)]
 pub struct Program {
-    pub program: Vec<Statement>
+    pub program: Vec<Statement>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Statement {
-    pub statement: StatementKind
+    pub statement: StatementKind,
 }
 
 #[derive(Debug, Clone)]
 pub enum StatementKind {
     Return(Exp),
-    Assign{lhs: Assingnable, rhs: Exp},
+    Assign { lhs: Assingnable, rhs: Exp },
     Exp(Exp),
-    Nest(NestKind)
+    Nest(NestKind),
 }
 
 #[derive(Debug, Clone)]
 pub struct Assingnable {
     pub name: String,
-    pub assignable: Vec<AssignableKind>
+    pub assignable: Vec<AssignableKind>,
 }
 
 #[derive(Debug, Clone)]
 pub enum AssignableKind {
-    ArrayIndex{index: Exp},
-    StructureField{field: String},
+    ArrayIndex { index: Exp },
+    StructureField { field: String },
 }
-
 
 #[derive(Debug, Clone)]
 pub struct Exp {
-    pub exp: Vec<TermKind>
+    pub exp: Vec<TermKind>,
 }
 
 #[derive(Debug, Clone)]
 pub enum TermKind {
     Operator(OperatorKind, Associativity, usize),
-    Value(ValueKind)
+    Value(ValueKind),
 }
 
 #[derive(Debug, Clone)]
 pub enum Associativity {
     Left,
-    Right
+    Right,
 }
 
 #[derive(Debug, Clone)]
 pub enum ValueKind {
     Paren(Box<Exp>),
     Structure(Vec<Field>),
-    Function{args: Vec<String>, block: Block},
+    Function { args: Vec<String>, block: Block },
     Num(f64),
     String(String),
     ArrayInit(Box<Exp>),
     Name(String),
-    Null
+    Null,
 }
 
 #[derive(Debug, Clone)]
 pub struct Field {
     pub name: String,
-    pub exp: Exp
+    pub exp: Exp,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct Block {
-    pub block: Vec<Statement>
+    pub block: Vec<Statement>,
 }
 
 #[derive(Debug, Clone)]
 pub enum NestKind {
     CondNest(CondNestKind),
-    LoopNest(LoopNestKind)
+    LoopNest(LoopNestKind),
 }
 
 #[derive(Debug, Clone)]
 pub enum CondNestKind {
-    IfElse{cond: Exp, then: Block, or_else: Block},
-    If{cond: Exp, then: Block},
+    IfElse {
+        cond: Exp,
+        then: Block,
+        or_else: Block,
+    },
+    If {
+        cond: Exp,
+        then: Block,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -98,16 +96,24 @@ pub enum OperatorKind {
 
 #[derive(Debug, Clone)]
 pub enum LoopNestKind {
-    While{cond: Exp, block: Block},
+    While {
+        cond: Exp,
+        block: Block,
+    },
     // todo: adv could be an expression too?
-    For{init: Box<Statement>, cond: Exp, adv: Box<Statement>, block: Block}
+    For {
+        init: Box<Statement>,
+        cond: Exp,
+        adv: Box<Statement>,
+        block: Block,
+    },
 }
 
 #[derive(Debug, Clone)]
 pub enum PostOp {
     Subscript(Box<Exp>),
     Call(Vec<Exp>),
-    Dot(String)
+    Dot(String),
 }
 
 #[derive(Debug, Clone)]
@@ -124,7 +130,7 @@ pub enum InfixOp {
     Eq,
     Ne,
     And,
-    Or
+    Or,
 }
 
 #[derive(Debug, Clone)]

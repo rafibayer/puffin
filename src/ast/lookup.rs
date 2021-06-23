@@ -94,14 +94,5 @@ pub fn unary(op: &str) -> Result<TermKind, ASTError> {
 }
 
 pub fn is_keyword(name: &str) -> bool {
-    match name {
-        "fn" => true,
-        "if" => true,
-        "else" => true,
-        "return" => true,
-        "for" => true,
-        "while" => true,
-        "null" => true,
-        _ => false,
-    }
+    matches!(name, "fn" | "if" | "else" | "return" | "for" | "while" | "null")
 }

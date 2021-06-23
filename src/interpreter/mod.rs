@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryInto, f64::EPSILON, usize};
+use std::{collections::HashMap, convert::TryInto, error, f64::EPSILON, fmt::Display, usize};
 
 use crate::ast::node::*;
 use value::{Environment, Value};
@@ -18,17 +18,16 @@ pub enum InterpreterError {
     UnexepectedOperator(String),
 }
 
+impl error::Error for InterpreterError {}
+
 pub fn eval(program: Program) -> Result<Value, InterpreterError> {
     eval_env(program, &mut Environment::new())
 }
 
 fn eval_env(program: Program, env: &mut Environment) -> Result<Value, InterpreterError> {
     for statement in program.program {
-        match eval_statement(statement, env)? {
-            // if the statement results in a value, we stop executing and return in
-            Some(return_val) => return Ok(return_val),
-            // otherwise, we continue
-            None => {}
+        if let Some(return_val) = eval_statement(statement, env)? {
+            return Ok(return_val)
         }
     }
 
@@ -65,12 +64,12 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
         match top {
             TermKind::Operator(op, _, _) => match op {
                 OperatorKind::Unary(unop) => {
-                    let next = stack.remove(0);
+                    let next = stack.pop().unwrap();
                     
                     match unop {
                         Unop::Not => {
                             let float: f64 = next.try_into()?;
-                            let result = !(float as i32 != 0) as i32 as f64;
+                            let result = (float as i32 == 0) as i32 as f64;
                             stack.push(Value::Num(result));
                         }
                         Unop::Neg => {
@@ -85,8 +84,8 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                     // This serves as a type check, to make sure that the operators can be applied
                     // to the given values
 
-                    let left: f64 = stack.remove(0).try_into()?;
-                    let right: f64 = stack.remove(0).try_into()?;
+                    let left: f64 = stack.pop().unwrap().try_into()?;
+                    let right: f64 = stack.pop().unwrap().try_into()?;
                    
                     stack.push(Value::Num(match infix {
                         InfixOp::Mul => left * right,
@@ -99,13 +98,13 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                         InfixOp::Le => (left <= right) as u32 as f64,
                         InfixOp::Ge => (left >= right) as u32 as f64,
                         InfixOp::Eq => ((left - right) < EPSILON) as u32 as f64,
-                        InfixOp::Ne => ((left - right) > EPSILON) as u32 as f64,
-                        InfixOp::And => ((left > EPSILON) && (right > EPSILON)) as u32 as f64,
-                        InfixOp::Or => ((left > EPSILON) || (right > EPSILON)) as u32 as f64,
+                        InfixOp::Ne => ((left - right) >= EPSILON) as u32 as f64,
+                        InfixOp::And => ((left.abs() > EPSILON) && (right.abs() > EPSILON)) as u32 as f64,
+                        InfixOp::Or => ((left.abs() > EPSILON) || (right.abs() > EPSILON)) as u32 as f64,
                     }));
                 }
                 OperatorKind::Postfix(postop) => {
-                    let next = stack.remove(0);
+                    let next = stack.pop().unwrap();
                     match postop {
                         PostOp::Subscript(exp) => {
                             match next {
@@ -118,16 +117,17 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                         },
                         PostOp::Call(exps) => {
                             match next {
-                                Value::Function { args, block, mut closure } => {
+                                Value::Function { args, block, closure } => {
                                     if exps.len() != args.len() {
                                         return Err(InterpreterError::ArgMismatch{ expected: args.len(), got: exps.len() })
                                     }
+                                    let mut subenv = closure.clone();
 
                                     for i in 0..args.len() {
-                                        closure.bind(args[i].clone(), &eval_exp(exps[i].clone(), env)?)?;
+                                        subenv.bind(args[i].clone(), eval_exp(exps[i].clone(), env)?)?;
                                     }
 
-                                    let result = eval_block(block, &mut closure)?.unwrap_or(Value::Null);
+                                    let result = eval_block(block, &mut subenv)?.unwrap_or(Value::Null);
                                     stack.push(result);
                                 },
                                 Value::Builtin(f) => {
@@ -139,13 +139,23 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                                     let result = (f.body)(actuals)?;
                                     stack.push(result);
                                 },
-                                _ => return Err(unexpected_type(next))
+                                _ => {
+                                    dbg!(rpn_queue);
+                                    dbg!(stack.len());
+
+                                    return Err(unexpected_type(next));
+                                }
                             }
                         },
                         PostOp::Dot(name) => {
                             match next {
                                 Value::Structure(map) => {
+                                    let result = match map.get(&name) {
+                                        Some(value) => value.clone(),
+                                        None => return Err(InterpreterError::UnboundName(name)),
+                                    };
 
+                                    stack.push(result);
                                 }
                                 _ => return Err(unexpected_type(next))
                             } 
@@ -159,7 +169,7 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
         }
     }
 
-    Ok(stack.remove(0))
+    Ok(stack.pop().unwrap())
 }
 
 fn eval_value(value: ValueKind, env: &mut Environment) -> Result<Value, InterpreterError> {
@@ -191,9 +201,8 @@ fn eval_value(value: ValueKind, env: &mut Environment) -> Result<Value, Interpre
 
 fn eval_block(block: Block, env: &mut Environment) -> Result<Option<Value>, InterpreterError> {
     for statement in block.block {
-        match eval_statement(statement, env)? {
-            Some(return_value) => return Ok(Some(return_value)),
-            None => {}
+        if let Some(return_value) = eval_statement(statement, env)? {
+            return Ok(Some(return_value))
         }
     }
 
@@ -213,22 +222,22 @@ fn eval_assign(
     if subassignment.is_empty() {
         // we cannot re-borrow env for the exp eval, so we clone it first,
         // then we bind the name
-        let mut env_clone = env.clone();
-        let value = eval_exp(rhs, &mut env_clone)?;
+        let mut value = eval_exp(rhs, env)?;
 
         // if we are binding a function to a name, bind function to it's own name in it's closure
         if let Value::Function{args, block, mut closure} = value.clone() {
-            closure.bind(name.clone(), &value)?;
-            return env.bind(name, &Value::Function{ args, block, closure})
+            closure.bind(name.clone(), value)?;
+            value = Value::Function{ args, block, closure };
+            return env.bind(name.clone(), value);
         }
         
-        return env.bind(name, &value);
+        return env.bind(name, value);
     }
 
     let mut bound = env.get(name.clone())?;
     bound = assign_drilldown(bound, subassignment, rhs, env)?;
 
-    env.bind(name, &bound)
+    env.bind(name, bound)
 }
 
 fn assign_drilldown(assign_to: Value, mut assignments: Vec<AssignableKind>, rhs: Exp, env: &mut Environment) -> Result<Value, InterpreterError> {
@@ -285,7 +294,7 @@ fn eval_nest(nest: NestKind, env: &mut Environment) -> Result<Option<Value>, Int
                         return Ok(then_res);
                     } 
                     let or_else_res = eval_block(or_else, env)?;
-                    return Ok(or_else_res);
+                    Ok(or_else_res)
                 },
                 CondNestKind::If { cond, then } => {
                     let cond_value: f64 = eval_exp(cond, env)?.try_into()?;
@@ -293,7 +302,7 @@ fn eval_nest(nest: NestKind, env: &mut Environment) -> Result<Option<Value>, Int
                         let then_res = eval_block(then, env)?;
                         return Ok(then_res);
                     }
-                    return Ok(None);
+                    Ok(None)
                 },
             }
         },
@@ -328,11 +337,17 @@ fn eval_nest(nest: NestKind, env: &mut Environment) -> Result<Option<Value>, Int
 
 #[track_caller]
 fn unexpected_type(value: Value) -> InterpreterError {
-    let caller_line_number = std::panic::Location::caller().line();
-    eprintln!("unexpected type: {}:{}", std::panic::Location::caller().file(), caller_line_number);
+    let caller = std::panic::Location::caller();
+    eprintln!("unexpected type: {:#?}, {}:{}", &value, caller.file(), caller.line());
     InterpreterError::UnexpectedType(format!("{:?}", value))
 }
 
 fn unexpected_operator(op: OperatorKind) -> InterpreterError {
     InterpreterError::UnexepectedOperator(format!("{:?}", op))
+}
+
+impl Display for InterpreterError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self)
+    }
 }
