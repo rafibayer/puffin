@@ -1,11 +1,10 @@
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::fmt::{Debug, Display};
 
 use super::InterpreterError;
 use crate::ast::node::*;
-use crate::interpreter::{unexpected_operator, unexpected_type};
+use crate::interpreter::unexpected_type;
 
 mod builtin;
 pub mod environment;
@@ -13,7 +12,7 @@ pub use environment::Environment;
 
 use builtin::Builtin;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Null,
     Num(f64),
@@ -78,17 +77,17 @@ impl TryInto<f64> for Value {
     }
 }
 
-
-impl TryInto<ValueKind> for TermKind {
+impl TryInto<String> for Value {
     type Error = InterpreterError;
 
-    fn try_into(self) -> Result<ValueKind, Self::Error> {
+    fn try_into(self) -> Result<String, Self::Error> {
         match self {
-            TermKind::Operator(op, _, _) => Err(unexpected_operator(op)),
-            TermKind::Value(v) => Ok(v),
+            Value::String(s) => Ok(s),
+            _=> Err(unexpected_type(self))
         }
     }
 }
+
 
 impl From<f64> for Value {
     fn from(v: f64) -> Self {

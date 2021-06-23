@@ -1,14 +1,14 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Program {
     pub program: Vec<Statement>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Statement {
     pub statement: StatementKind,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum StatementKind {
     Return(Exp),
     Assign { lhs: Assingnable, rhs: Exp },
@@ -16,36 +16,36 @@ pub enum StatementKind {
     Nest(NestKind),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Assingnable {
     pub name: String,
     pub assignable: Vec<AssignableKind>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum AssignableKind {
     ArrayIndex { index: Exp },
     StructureField { field: String },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Exp {
     pub exp: Vec<TermKind>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TermKind {
     Operator(OperatorKind, Associativity, usize),
     Value(ValueKind),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Associativity {
     Left,
     Right,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ValueKind {
     Paren(Box<Exp>),
     Structure(Vec<Field>),
@@ -57,24 +57,24 @@ pub enum ValueKind {
     Null,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Field {
     pub name: String,
     pub exp: Exp,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Block {
     pub block: Vec<Statement>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum NestKind {
     CondNest(CondNestKind),
     LoopNest(LoopNestKind),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum CondNestKind {
     IfElse {
         cond: Exp,
@@ -87,14 +87,14 @@ pub enum CondNestKind {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum OperatorKind {
     Unary(Unop),
     Infix(InfixOp),
     Postfix(PostOp),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum LoopNestKind {
     While {
         cond: Exp,
@@ -109,14 +109,14 @@ pub enum LoopNestKind {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PostOp {
     Subscript(Box<Exp>),
     Call(Vec<Exp>),
     Dot(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum InfixOp {
     Mul,
     Mod,
@@ -133,7 +133,7 @@ pub enum InfixOp {
     Or,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Unop {
     Not,
     Neg,

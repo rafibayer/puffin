@@ -1,9 +1,10 @@
-use std::{borrow::{Borrow, BorrowMut}, cell::RefCell, collections::HashMap, convert::TryInto, error, f64::EPSILON, fmt::Display, usize};
+use std::{collections::HashMap, convert::TryInto, error, f64::EPSILON, fmt::Display, usize};
 
 use crate::ast::node::*;
 use value::{Environment, Value};
 
 mod shunting_yard;
+mod operations;
 pub mod value;
 
 #[derive(Debug, Clone)]
@@ -80,31 +81,15 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                     }
                 },
                 OperatorKind::Infix(infix) => {
-                    // convert the top 2 values on the stack into numbers.
-                    // This serves as a type check, to make sure that the operators can be applied
-                    // to the given values
 
-                    let right: f64 = stack.pop().unwrap().try_into()?;
-                    let left: f64 = stack.pop().unwrap().try_into()?;
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    
+                    stack.push(operations::infix(infix, left, right)?);
                    
-                    stack.push(Value::Num(match infix {
-                        InfixOp::Mul => left * right,
-                        InfixOp::Mod => left % right,
-                        InfixOp::Div => left / right,
-                        InfixOp::Plus => left + right,
-                        InfixOp::Minus => left - right,
-                        InfixOp::Lt => (left < right) as u32 as f64,
-                        InfixOp::Gt => (left > right) as u32 as f64,
-                        InfixOp::Le => (left <= right) as u32 as f64,
-                        InfixOp::Ge => (left >= right) as u32 as f64,
-                        InfixOp::Eq => ((left - right) < EPSILON) as u32 as f64,
-                        InfixOp::Ne => ((left - right) >= EPSILON) as u32 as f64,
-                        InfixOp::And => ((left.abs() > EPSILON) && (right.abs() > EPSILON)) as u32 as f64,
-                        InfixOp::Or => ((left.abs() > EPSILON) || (right.abs() > EPSILON)) as u32 as f64,
-                    }));
                 }
                 OperatorKind::Postfix(postop) => {
-                    let mut next = stack.pop().unwrap();
+                    let next = stack.pop().unwrap();
                     match postop {
                         PostOp::Subscript(exp) => {
                             match next {
@@ -183,7 +168,9 @@ fn eval_value(value: ValueKind, env: &mut Environment) -> Result<Value, Interpre
             Ok(Value::Structure(map))
         },
         ValueKind::FunctionDef { args, block } => {
-            // functions evaluate to a closure that captures the local environment
+            // functions evaluate to a closure that captures the local environment.
+            // by default, closures don't have their own name.
+            // self_name is set later by eval_assign if we are binding this closure to a name.
             Ok(Value::Closure{ self_name: None, args, block, environment: env.clone() })
         },
         ValueKind::Num(n) => Ok(Value::Num(n)),
@@ -223,7 +210,8 @@ fn eval_assign(
     if subassignment.is_empty() {
         let value = eval_exp(rhs, env)?;
 
-        if let Value::Closure { self_name, args, block, environment } = value {
+        // if we are binding a function, give it it's name
+        if let Value::Closure { args, block, environment, .. } = value {
             let func_bind = Value::Closure{ self_name: Some(name.clone()), args, block, environment };
             return env.bind(name, func_bind);
         }
@@ -339,10 +327,6 @@ fn unexpected_type(value: Value) -> InterpreterError {
     let caller = std::panic::Location::caller();
     eprintln!("unexpected type: {:#?}, {}:{}", &value, caller.file(), caller.line());
     InterpreterError::UnexpectedType(format!("{:?}", value))
-}
-
-fn unexpected_operator(op: OperatorKind) -> InterpreterError {
-    InterpreterError::UnexepectedOperator(format!("{:?}", op))
 }
 
 impl Display for InterpreterError {

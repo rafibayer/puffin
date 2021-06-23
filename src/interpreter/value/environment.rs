@@ -1,12 +1,11 @@
-use std::{borrow::BorrowMut, collections::{HashMap, HashSet}};
+use std::collections::{HashMap, HashSet};
 
-use Value::Closure;
 
 use super::{InterpreterError, Value, builtin};
 
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Environment {
     // local bindings
     bindings: HashMap<String, Value>,

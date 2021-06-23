@@ -25,10 +25,20 @@ impl Clone for Builtin {
     }
 }
 
+impl PartialEq for Builtin {
+    fn eq(&self, other: &Self) -> bool {
+        // all builtins have unique names
+        self.name == other.name
+    }
+}
+
 // todo: replace with static or lazy-static
 pub fn get_builtins() -> HashMap<String, Value> {
     let builtins = vec![
         ("PI", Value::from(std::f64::consts::PI)),
+        ("true", Value::from(1f64)),
+        ("false", Value::from(0f64)),
+        ("EPSILON", Value::from(std::f64::EPSILON)),
         (
             "len",
             Value::from(Builtin {

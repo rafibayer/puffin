@@ -289,7 +289,11 @@ fn build_num(num: Pair<Rule>) -> Result<f64, ASTError> {
 
 fn build_string(string: Pair<Rule>) -> Result<ValueKind, ASTError> {
     match string.as_rule() {
-        Rule::string => Ok(ValueKind::String(string.as_str().to_string())),
+        Rule::string => {
+            let len = string.as_str().len();
+            // trim the quote literals
+            Ok(ValueKind::String(string.as_str()[1..len-1].to_string()))
+        },
         _ => Err(unexpected_token(string)),
     }
 }
