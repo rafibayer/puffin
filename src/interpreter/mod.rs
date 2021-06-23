@@ -17,6 +17,7 @@ pub enum InterpreterError {
     UnexpectedType(String),
     BuiltinRebinding(String),
     UnexepectedOperator(String),
+    IOError(String),
 }
 
 impl error::Error for InterpreterError {}
@@ -332,5 +333,11 @@ fn unexpected_type(value: Value) -> InterpreterError {
 impl Display for InterpreterError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self)
+    }
+}
+
+impl From<std::io::Error> for InterpreterError {
+    fn from(io_err: std::io::Error) -> Self {
+        InterpreterError::IOError(io_err.to_string())
     }
 }

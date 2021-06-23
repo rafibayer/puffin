@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::process;
+use std::io::Read;
+use std::{io, process};
 
 use crate::interpreter::{InterpreterError, unexpected_type};
 
@@ -33,7 +34,7 @@ impl PartialEq for Builtin {
     }
 }
 
-// todo: replace with static or lazy-static
+// todo: replace with s name: (), body: ()  name: (), body: () tatic or lazy-static
 pub fn get_builtins() -> HashMap<String, Value> {
     let builtins = vec![
         ("PI", Value::from(std::f64::consts::PI)),
@@ -89,6 +90,16 @@ pub fn get_builtins() -> HashMap<String, Value> {
             Value::Builtin(Builtin{
                 name: "sqrt", body: |v| builtin_floatops(v, f64::sqrt)
             }),
+        ),(
+            "input_str",
+            Value::Builtin(Builtin{
+                name: "input_str", body: |v| builtin_input(v, InputType::String)
+            })
+        ),(
+            "input_num",
+            Value::Builtin(Builtin{
+                name: "input_num", body: |v| builtin_input(v, InputType::Num)
+            })
         ),
     ];
     builtins
@@ -138,6 +149,35 @@ where F: Fn(f64) -> f64 {
     let arg = get_one(v)?;
     let float: f64 = arg.try_into()?;
     Ok(Value::from(f(float)))
+}
+
+enum InputType {
+    String,
+    Num
+}
+
+fn builtin_input(v: Vec<Value>, input_type: InputType) -> Result<Value, InterpreterError> {
+    // print any args as a prompt
+    builtin_print(v)?;
+    // flush stdout so prompt appears first
+    io::Write::flush(&mut io::stdout())?;
+
+    let mut buf = String::new();
+    io::stdin().read_line(&mut buf)?;
+    buf = buf.trim_end().to_string();
+
+    Ok(match input_type {
+        InputType::String => Value::String(buf),
+        InputType::Num => {
+            let parsed: f64 = if let Ok(n) = buf.parse() {
+                n
+            } else {
+                return Err(InterpreterError::IOError("Failed to parse number".to_string()))
+            };
+
+            Value::Num(parsed)
+        },
+    })
 }
 
 fn get_one(v: Vec<Value>) -> Result<Value, InterpreterError> {
