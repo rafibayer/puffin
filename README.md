@@ -159,3 +159,4 @@ Example: `$ puffin program.puf`
 -----------------------------------------------------------
 
 ```
+Puffin is the successor to my previous attempt at creating a language: [smp-lang](https://github.com/rafibayer/smp-lang).
