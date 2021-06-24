@@ -1,7 +1,8 @@
 use std::{collections::HashMap, convert::TryInto, error, f64::EPSILON, fmt::Display, usize};
 
 use crate::ast::node::*;
-use value::{Environment, Value};
+use value::Environment;
+pub use value::Value;
 
 mod shunting_yard;
 mod operations;
@@ -253,10 +254,9 @@ fn assign_drilldown(assign_to: Value, mut assignments: Vec<AssignableKind>, rhs:
         }
         AssignableKind::StructureField { field } => {
             if let Value::Structure(mut structure) = assign_to {
-                let mut new_struct = structure.clone();
 
                 // either assign to substruct
-                let assign_to = match new_struct.remove(&field) {
+                let assign_to = match structure.remove(&field) {
                     Some(f) => f,
                     // or create the new struct
                     None => Value::Structure(HashMap::new()),

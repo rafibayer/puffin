@@ -55,9 +55,13 @@ impl Display for Value {
                 );
                 write!(f, "{}}}", buf)
             }
-            Value::Closure { args, block, .. } => {
+            Value::Closure { args, self_name, .. } => {
                 let argstr = args.join(", ");
-                write!(f, "<fn({}) {{{:#?}}}> ", argstr, block)
+                if let Some(name) = self_name {
+                    return write!(f, "<{} fn({})> ", name, argstr)
+
+                }
+                write!(f, "<λ fn({})> ", argstr)
             },
             Value::Builtin(b) => {
                 write!(f, "{:?}", b)

@@ -129,11 +129,14 @@ Example: `$ puffin program.puf`
 
 - `-ast`: Show the program AST before execution
 
-
 ## Planned Features
+- Array Resizing (automatic? via builtin?)
+- Array Literals
+- Hash-table (and literals?)
 - String indexing
 - More builtins
-- Imports/multi-file programs?
+- Runtime/AST error line numbers
+- Imports/multi-file programs? standard library?
 
 <hr>
 

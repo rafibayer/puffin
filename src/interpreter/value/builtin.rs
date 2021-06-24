@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::{io, process};
+use std::io;
 
 use crate::interpreter::{InterpreterError, unexpected_type};
 
@@ -188,5 +188,5 @@ fn get_one(v: Vec<Value>) -> Result<Value, InterpreterError> {
         return Err(InterpreterError::ArgMismatch{ expected: 1, got: v.len() })
     }
 
-    return Ok(v[0].clone())
+    Ok(v[0].clone())
 }

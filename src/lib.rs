@@ -70,18 +70,25 @@ impl Config {
 }
 
 pub fn run(config: Config) -> Value {
-    let contents = fs::read_to_string(config.filename).unwrap_or_else(|err| {
+    let contents = fs::read_to_string(config.filename.clone()).unwrap_or_else(|err| {
         eprintln!("Failed to read file: {:#?}", err);
         process::exit(1);
     });
+    
     let parsed = PuffinParser::parse(Rule::program, &contents).unwrap_or_else(|err| {
         eprintln!("Parser Error: {}", parser::line_col(err));
         process::exit(1);
     });
+    if config.show_parse {
+        println!("{} parse:\n{:#?}", config.filename, &parsed);
+    }
     let program = ast::build_program(parsed.into_iter().next().unwrap()).unwrap_or_else(|err| {
         eprintln!("AST Error: {:#?}", err);
         process::exit(1);
     });
+    if config.show_ast {
+        println!("{} ast:\n{:#?}", config.filename, &program);
+    }
     interpreter::eval(program).unwrap_or_else(|err| {
         eprintln!("Runtime Error: {:#?}", err);
         process::exit(1);
