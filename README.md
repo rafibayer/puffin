@@ -37,7 +37,7 @@ print(curry_10(7));
 
 // Output: 17
 ```
-You may also pass functions line other types freely.
+You may also pass functions like other types freely.
 
 ```
 call_twice = fn(f) {
