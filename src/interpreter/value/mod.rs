@@ -92,6 +92,17 @@ impl TryInto<String> for Value {
     }
 }
 
+impl TryInto<Vec<Value>> for Value {
+    type Error = InterpreterError;
+
+    fn try_into(self) -> Result<Vec<Value>, Self::Error> {
+        match self {
+            Value::Array(arr) => Ok(arr),
+            _=> Err(unexpected_type(self))
+        }
+    }
+}
+
 
 impl From<f64> for Value {
     fn from(v: f64) -> Self {

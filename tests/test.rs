@@ -3,7 +3,7 @@ mod test {
     use std::collections::HashMap;
 
     use puffin::{
-        ast::{self, node::Block},
+        ast::{self, node::*},
         interpreter::{self, value::Environment, Value},
         parser, Parser,
     };
@@ -48,9 +48,21 @@ mod test {
                 },
             ),
             (
-                r#"return (1 + 1);"#,
-                Value::Num(2f64)
-            )
+                r#"return fn(a) => a;"#,
+                Value::Closure {
+                    self_name: None,
+                    args: vec!["a".to_string()],
+                    block: Block {
+                        block: vec![Statement {
+                            statement: StatementKind::Return(Exp {
+                                exp: vec![TermKind::Value(ValueKind::Name("a".to_string()))],
+                            }),
+                        }],
+                    },
+                    environment: Environment::new(),
+                },
+            ),
+            (r#"return (1 + 1);"#, Value::Num(2f64)),
         ];
 
         for (program, output) in tests {

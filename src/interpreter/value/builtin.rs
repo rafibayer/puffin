@@ -105,6 +105,19 @@ pub fn get_builtins() -> HashMap<String, Value> {
                 name: "input_num", body: |v| builtin_input(v, InputType::Num)
             })
         ),
+        (
+            "push",
+            Value::Builtin(Builtin{
+                name: "push", body: builtin_push
+            })
+        ),
+        (
+            "pop",
+            Value::Builtin(Builtin{
+                name: "pop", body: builtin_pop
+            })
+        ),
+        
     ];
     builtins
         .into_iter()
@@ -147,6 +160,7 @@ where
     }
 }
 
+#[inline]
 fn builtin_floatops<F>(v: Vec<Value>, f: F) -> Result<Value, InterpreterError>
 where F: Fn(f64) -> f64 {
     let arg = get_one(v)?;
@@ -183,10 +197,43 @@ fn builtin_input(v: Vec<Value>, input_type: InputType) -> Result<Value, Interpre
     })
 }
 
-fn get_one(v: Vec<Value>) -> Result<Value, InterpreterError> {
-    if v.len() != 1 {
-        return Err(InterpreterError::ArgMismatch{ expected: 1, got: v.len() })
+fn builtin_push(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
+    expect_args(2, &v)?;
+
+    let value = v.pop().unwrap();
+    let mut array: Vec<Value> = v.pop().unwrap().try_into()?;
+
+    array.push(value);
+
+    Ok(Value::Array(array))
+}
+
+
+
+fn builtin_pop(v: Vec<Value>) -> Result<Value, InterpreterError> {
+    let mut array: Vec<Value> = get_one(v)?.try_into()?;
+
+    let removed = array.pop().unwrap();
+
+    Ok(Value::Structure(
+        vec![("removed", removed), ("array", Value::Array(array))]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect()
+    ))
+}
+
+#[inline]
+fn get_one(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
+    expect_args(1, &v)?;
+    Ok(v.remove(0))
+}
+
+#[inline]
+fn expect_args<T>(n: usize, v: &Vec<T>) -> Result<(), InterpreterError> {
+    if v.len() != n {
+        return Err(InterpreterError::ArgMismatch{ expected: n, got: v.len() })
     }
 
-    Ok(v[0].clone())
+    Ok(())
 }

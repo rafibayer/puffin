@@ -22,14 +22,12 @@ print(fact(input_num("Factorial: ")));
 `Puffin` Supports a mix of structural and dynamic language features:
 
 ## First-Class Functions
-`Puffin` functions are closures which capture their environment when evaluated, if bound to a name, functions may also be used recursively. `Puffin` functions are declared with the keyword `fn`, followed by any number of argument names in parens, and finally, the associated function body between curlies.
+`Puffin` functions are closures which capture their environment when evaluated, if bound to a name, functions may also be used recursively. `Puffin` functions are declared with the keyword `fn`, followed by any number of argument names in parens, and finally, the associated function body between curlies, or a single expression.
 
 ```ts
 // Curried addition using closures
 curry_add = fn(a) {
-    return fn(b) {
-        return a + b;
-    };
+    return fn(b) => a + b;
 };
 
 curry_10 = curry_add(10);
@@ -45,7 +43,7 @@ call_twice = fn(f) {
     f();
 };
 
-call_twice(fn(){println("Hello World");});
+call_twice(fn() => println("Hello World"));
 // Output: 
 // Hello World
 // Hello World
@@ -98,12 +96,15 @@ println(arr);
 - `true`: 1
 - `false`: 0
 - `EPSILON`: Rust `std::f64::EPSILON`
-- `len()`: Returns len of array, string, or structure
-- `print()`: prints arbitrary number of args
-- `println()`: printlns arbitrary number of args
-- `error()`: printlns args to sterr and exits with non-zero exit code
-- `sin(), cos(), tan(), sqrt(), abs()`: standard math functions
-- `input_str(), input_num()`: prints args as prompt, parses next line from stdin as string or number.
+- `len(a)`: Returns len of array, string, or structure
+- `print(args)`: prints arbitrary number of args
+- `println(args)`: printlns arbitrary number of args
+- `error(args)`: printlns args to sterr and exits with non-zero exit code
+- `sin(a), cos(a), tan(a), sqrt(a), abs(a)`: standard math functions
+- `input_str(args), input_num(args)`: prints args as prompt, parses next line from stdin as string or number.
+- `push(a, b)`: pushes `b` onto the array `a`, returning the new array `a'`
+- `pop(a)`: pops the last element `b`, off `a`, returning a struct in the form `{array: a', removed: b}`
+
 
 ## Types
 `Puffin` supports the following types. All types are pass by value. If you modify a parameter to a function you will need to return in back to the caller, however this is trivial with dynamic structures and arrays which can be used to bundle return values if needed:

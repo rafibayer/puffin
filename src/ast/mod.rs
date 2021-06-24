@@ -264,7 +264,13 @@ fn build_function(function: Pair<Rule>) -> Result<ValueKind, ASTError> {
         args.push(next);
     }
 
-    let block = build_block(inner.remove(0))?;
+    let function_body = inner.remove(0);
+    let block = match function_body.as_rule() {
+        Rule::block => build_block(function_body)?,
+        // expand lambda expression into block returning expression value
+        Rule::lambda => Block{ block: vec![build_return(function_body)?] },
+        _ => return Err(unexpected_token(function_body)),
+    };
 
     Ok(ValueKind::FunctionDef { args, block })
 }
@@ -292,8 +298,8 @@ fn build_string(string: Pair<Rule>) -> Result<ValueKind, ASTError> {
         Rule::string => {
             let len = string.as_str().len();
             // trim the quote literals
-            Ok(ValueKind::String(string.as_str()[1..len-1].to_string()))
-        },
+            Ok(ValueKind::String(string.as_str()[1..len - 1].to_string()))
+        }
         _ => Err(unexpected_token(string)),
     }
 }

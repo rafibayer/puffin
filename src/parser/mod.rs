@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use pest::error::Error;
 
 extern crate pest;
@@ -310,6 +308,21 @@ mod test {
 
         for test in tests {
             let pairs = PuffinParser::parse(Rule::exp, test).expect(test);
+            let last = pairs.last().unwrap();
+            assert_eq!(last.as_span().end(), test.len(), "{}", test);
+        }
+    }
+
+    #[test]
+    fn test_lambda() {
+        let tests = vec![
+            r#"fn() => 1"#,
+            r#"fn() => (1 + 1)"#,
+            r#"fn() => fn() => 1"#,
+        ];
+
+        for test in tests {
+            let pairs = PuffinParser::parse(Rule::function, test).expect(test);
             let last = pairs.last().unwrap();
             assert_eq!(last.as_span().end(), test.len(), "{}", test);
         }

@@ -90,12 +90,15 @@ null = { "null" }
 
 array_init = { "[" ~ exp ~ "]" }
 
+block = { "{" ~ statement* ~ "}"}
+
 // function definition, "fn" followed by 0 or more arg names followed by function body
-function = { "fn" ~ "(" ~ args ~ ")" ~ block }
+// alternate definition, "fn" followed by 0 or more arg names, followed by single exp
+function = { "fn" ~ "(" ~ args ~ ")" ~ ( block | lambda ) }
+    lambda = { "=>" ~ exp }
     args = _{ name ~ "," ~ args | name | "" }
     exps = _{ exp ~ "," ~ exps | exp | "" }
 
-block = { "{" ~ statement* ~ "}"}
 
 // nest: conditionals or loops
 nest = {
