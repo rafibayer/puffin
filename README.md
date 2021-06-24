@@ -4,7 +4,7 @@ A simple, dynamic language interpreter written in Rust.
 
 # Code Sample
 
-```ts
+```rs
 // recursively computes factorial of n
 fact = fn(n) {
     if (n < 2) {
@@ -24,7 +24,7 @@ print(fact(input_num("Factorial: ")));
 ## First-Class Functions
 `Puffin` functions are closures which capture their environment when evaluated, if bound to a name, functions may also be used recursively. `Puffin` functions are declared with the keyword `fn`, followed by any number of argument names in parens, and finally, the associated function body between curlies, or a single expression.
 
-```ts
+```rs
 // Curried addition using closures
 curry_add = fn(a) {
     return fn(b) => a + b;
@@ -37,7 +37,7 @@ print(curry_10(7));
 ```
 You may also pass functions like other types freely.
 
-```ts
+```rs
 call_twice = fn(f) {
     f();
     f();
@@ -52,7 +52,7 @@ call_twice(fn() => println("Hello World"));
 ## Structures
 `Puffin` Structures can be created and bound to names, arrays, or even other structure fields. Structure fields are dynamic and can be added ad-hoc.
 
-```ts
+```rs
 // create a structure
 user = {
     name: "Rafi",
@@ -74,9 +74,9 @@ println(user.contact);
 ```
 
 ## Arrays
-`puffin` Arrays are fixed sized data-structures, `puffin` allows arrays to have mixed types (this includes other arrays).
+`puffin` Arrays are fixed sized data-structures, `puffin` allows arrays to have mixed types (this includes other arrays). See the [Builtins](##Builtins) section for more ways to manipulate arrays.
 
-```ts
+```rs
 // create a new array of size 5
 arr = [5];
 
