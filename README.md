@@ -92,16 +92,16 @@ println(arr);
 ```
 ## Builtins
 `Puffin` currently supports the following builtin functions and constants, although more may be added soon. Builtins cannot be rebound (although they can be used as structure field names):
-- `PI`: approx. pi
+- `PI`: approximately π
 - `true`: 1
 - `false`: 0
 - `EPSILON`: Rust `std::f64::EPSILON`
-- `len(a)`: Returns len of array, string, or structure
-- `print(args)`: prints arbitrary number of args
-- `println(args)`: printlns arbitrary number of args
-- `error(args)`: printlns args to sterr and exits with non-zero exit code
-- `sin(a), cos(a), tan(a), sqrt(a), abs(a)`: standard math functions
-- `input_str(args), input_num(args)`: prints args as prompt, parses next line from stdin as string or number.
+- `len(a)`: Returns length of array, string, or structure `a`
+- `print(args)`: prints elements of `args` delimited by spaces
+- `println(args)`: prints elements of `args` delimited by newlines
+- `error(args)`: printlns `args` to sterr and exits with non-zero exit code
+- `sin(a)`, `cos(a)`, `tan(a)`, `sqrt(a)`, `abs(a)`: standard math functions
+- `input_str(args)`, `input_num(args)`: prints args as prompt, parses next line from stdin as string or number.
 - `push(a, b)`: pushes `b` onto the array `a`, returning the new array `a'`
 - `pop(a)`: pops the last element `b`, off `a`, returning a struct in the form `{array: a', removed: b}`
 
@@ -141,7 +141,7 @@ Example: `$ puffin program.puf`
 
 <hr>
 
-```
+```art lol
 -----------------------------------------------------------
                             ,▄▄▄▄,
                         ▄██████████▄
