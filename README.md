@@ -81,7 +81,7 @@ println(user.contact);
 arr = [5];
 
 // fill arr with 1-5
-for (i = 0; i < len(arr); i = i + 1) {
+for (i = 0; i < len(arr); i += 1) {
     arr[i] = i + 1;
 }
 

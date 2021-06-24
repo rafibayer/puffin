@@ -1,4 +1,4 @@
-use std::{error, fmt::Display};
+use std::{error, fmt::Display, vec};
 
 use crate::Rule;
 use pest::iterators::Pair;
@@ -62,13 +62,39 @@ fn build_return(return_statement: Pair<Rule>) -> Result<Statement, ASTError> {
 
 fn build_assign(assign_statement: Pair<Rule>) -> Result<Statement, ASTError> {
     let mut inner = get_inner(assign_statement);
-    expect_children(2, &inner)?;
-    let lhs = build_assignable(inner.remove(0))?;
-    let rhs = build_exp(inner.remove(0))?;
+    match inner.len() {
+        // regular assignment (a = b)
+        2 => {
+            let lhs = build_assignable(inner.remove(0))?;
+            let rhs = build_exp(inner.remove(0))?;
+            Ok(Statement {
+                statement: StatementKind::Assign { lhs, rhs },
+            })
+        },
+        // augmented assignment (a op= b)
+        3 => {
+            
+            let assign_to = inner.remove(0);
+            let lhs = build_assignable(assign_to.clone())?;
+            let aug = lookup::infix(inner.remove(0).as_str())?;
+            // preserve right hand expression by wrapping in parens
+            let mut rhs = Exp{exp: vec![
+                TermKind::Value(ValueKind::Paren(Box::new(build_exp(inner.remove(0))?)))
+            ]};
 
-    Ok(Statement {
-        statement: StatementKind::Assign { lhs, rhs },
-    })
+            rhs.exp.insert(0, aug);
+            rhs.exp.insert(0, TermKind::Value(ValueKind::Paren(Box::new(build_exp(assign_to)?))));
+
+            // final statement expands
+            // from: a op= b;
+            // to:   a = (a) op (b);
+            Ok(Statement {
+                statement: StatementKind::Assign { lhs, rhs },
+            }) 
+        },
+        e => return Err(ASTError::ChildMismatch{ got: e, expected: 2 })
+    }
+    
 }
 
 fn build_assignable(assignable: Pair<Rule>) -> Result<Assingnable, ASTError> {

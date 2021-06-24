@@ -328,6 +328,22 @@ mod test {
         }
     }
 
+    #[test]
+    fn test_aug_assign() {
+        let tests = vec![
+            r"a += 1;",
+            r"a += 1 + 1;",
+            r"a[5] += 1 + 1;",
+            r"a.field += 1 + 1;",
+        ];
+
+        for test in tests {
+            let pairs = PuffinParser::parse(Rule::program, test).expect(test);
+            let last = pairs.last().unwrap();
+            assert_eq!(last.as_span().end(), test.len(), "{}", test);
+        }
+    }
+
     // test template
     #[ignore]
     #[test]

@@ -18,7 +18,14 @@ statement = {
 }
 
 return_statment = { "return" ~ exp }
-assign_statment = { exp ~ "=" ~ exp }
+assign_statment = { exp ~ aug? ~ "=" ~ exp }
+    aug = {
+        "+" |
+        "-" |
+        "*" |
+        "/" |
+        "%" 
+    }
 
 exp = {
     comparison ~ post_op* |
