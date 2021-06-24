@@ -1,8 +1,10 @@
+use cached::proc_macro::cached;
 use super::node::*;
 use super::ASTError;
 
-pub fn infix(op: &str) -> Result<TermKind, ASTError> {
-    Ok(match op {
+#[cached]
+pub fn infix(op: String) -> Result<TermKind, ASTError> {
+    Ok(match op.as_str() {
         "||" => TermKind::Operator (
             OperatorKind::Infix(InfixOp::Or),
             Associativity::Left,
@@ -76,9 +78,10 @@ pub fn infix(op: &str) -> Result<TermKind, ASTError> {
     })
 }
 
-pub fn unary(op: &str) -> Result<TermKind, ASTError> {
+#[cached]
+pub fn unary(op: String) -> Result<TermKind, ASTError> {
 
-    Ok(match op {
+    Ok(match op.as_str() {
         "!" => TermKind::Operator (
             OperatorKind::Unary(Unop::Not),
             Associativity::Right,

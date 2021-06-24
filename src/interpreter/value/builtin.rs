@@ -3,6 +3,7 @@ use std::convert::TryInto;
 use std::io;
 
 use crate::interpreter::{InterpreterError, unexpected_type};
+use cached::proc_macro::cached;
 
 use super::Value;
 
@@ -33,7 +34,7 @@ impl PartialEq for Builtin {
     }
 }
 
-// todo: replace with s name: (), body: ()  name: (), body: () tatic or lazy-static
+#[cached]
 pub fn get_builtins() -> HashMap<String, Value> {
     let builtins = vec![
         ("PI", Value::from(std::f64::consts::PI)),
@@ -230,7 +231,7 @@ fn get_one(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
 }
 
 #[inline]
-fn expect_args<T>(n: usize, v: &Vec<T>) -> Result<(), InterpreterError> {
+fn expect_args<T>(n: usize, v: &[T]) -> Result<(), InterpreterError> {
     if v.len() != n {
         return Err(InterpreterError::ArgMismatch{ expected: n, got: v.len() })
     }

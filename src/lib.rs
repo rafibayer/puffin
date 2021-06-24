@@ -24,6 +24,8 @@ Welcome to the Puffin Language Interpreter!
 #[macro_use]
 extern crate pest_derive;
 
+extern crate cached;
+
 pub mod parser;
 pub mod ast;
 pub mod interpreter;

@@ -11,7 +11,7 @@ pub mod node;
 #[cfg(test)]
 mod test;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ASTError {
     ChildMismatch { got: usize, expected: usize },
     UnexpectedToken(String),
@@ -76,7 +76,7 @@ fn build_assign(assign_statement: Pair<Rule>) -> Result<Statement, ASTError> {
             
             let assign_to = inner.remove(0);
             let lhs = build_assignable(assign_to.clone())?;
-            let aug = lookup::infix(inner.remove(0).as_str())?;
+            let aug = lookup::infix(inner.remove(0).as_str().to_string())?;
             // preserve right hand expression by wrapping in parens
             let mut rhs = Exp{exp: vec![
                 TermKind::Value(ValueKind::Paren(Box::new(build_exp(inner.remove(0))?)))
@@ -92,7 +92,7 @@ fn build_assign(assign_statement: Pair<Rule>) -> Result<Statement, ASTError> {
                 statement: StatementKind::Assign { lhs, rhs },
             }) 
         },
-        e => return Err(ASTError::ChildMismatch{ got: e, expected: 2 })
+        e => Err(ASTError::ChildMismatch{ got: e, expected: 2 })
     }
     
 }
@@ -230,9 +230,9 @@ fn build_exp(exp: Pair<Rule>) -> Result<Exp, ASTError> {
         terms.push(match next.as_rule() {
             Rule::value => TermKind::Value(build_value(next)?),
             Rule::log_op | Rule::comp_op | Rule::sum_op | Rule::mul_op => {
-                lookup::infix(next.as_str())?
+                lookup::infix(next.as_str().to_string())?
             }
-            Rule::un_op => lookup::unary(next.as_str())?,
+            Rule::un_op => lookup::unary(next.as_str().to_string())?,
             Rule::post_op => TermKind::Operator(
                 OperatorKind::Postfix(build_postfix(next)?),
                 Associativity::Left,

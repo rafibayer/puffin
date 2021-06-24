@@ -1,13 +1,13 @@
+mod common;
+
+
 #[cfg(test)]
 mod test {
+
+    use super::common::*;
     use std::collections::HashMap;
 
-    use puffin::{
-        ast::{self, node::*},
-        interpreter::{self, value::Environment, Value},
-        parser, Parser,
-    };
-
+    
     // test programs that return literals
     #[test]
     fn test_value() {
@@ -70,7 +70,7 @@ mod test {
         }
     }
 
-    fn run_program(program: &str) -> Value {
+    pub fn run_program(program: &str) -> Value {
         let parsed = parser::PuffinParser::parse(puffin::Rule::program, program)
             .unwrap()
             .next()

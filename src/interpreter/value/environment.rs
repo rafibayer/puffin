@@ -1,9 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-
-use super::{InterpreterError, Value, builtin};
-
-
+use super::{builtin, InterpreterError, Value};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Environment {
@@ -13,16 +10,18 @@ pub struct Environment {
     builtins: HashSet<String>,
 }
 
+impl Default for Environment {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Environment {
     pub fn new() -> Environment {
         // get_builtins and the builtins hashset should probably both be static/lazy & cached
         let bindings = builtin::get_builtins();
         let builtins = bindings.keys().cloned().collect();
-        Environment {
-            bindings,
-            builtins
-        }
+        Environment { bindings, builtins }
     }
 
     pub fn bind(&mut self, name: String, value: Value) -> Result<Value, InterpreterError> {
@@ -47,5 +46,4 @@ impl Environment {
             }
         }
     }
-
 }
