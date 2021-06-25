@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryInto, error, f64::EPSILON, fmt::Display, usize};
+use std::{collections::HashMap, convert::TryInto, f64::EPSILON, fmt::Display, usize};
 
 use crate::ast::node::*;
 use value::Environment;
@@ -22,14 +22,17 @@ pub enum InterpreterError {
     RuntimeError,
 }
 
-impl error::Error for InterpreterError {}
 
+/// evaluates a program AST. Entrypoint of the interpreter
 pub fn eval(program: Program) -> Result<Value, InterpreterError> {
     eval_env(program, &mut Environment::new())
 }
 
+/// evaluates a program under a given environment
 fn eval_env(program: Program, env: &mut Environment) -> Result<Value, InterpreterError> {
     for statement in program.program {
+        // if a statement has a value, it was a return statement,
+        // we stop executing the program and return the value
         if let Some(return_val) = eval_statement(statement, env)? {
             return Ok(return_val)
         }
@@ -49,6 +52,8 @@ fn eval_statement(
         StatementKind::Assign { lhs, rhs } => eval_assign(lhs, rhs, env),
         StatementKind::Exp(exp) => eval_exp(exp, env),
         StatementKind::Nest(nest) => match eval_nest(nest, env)? {
+            // if a nest statement has a value, it had a return statement,
+            // we propagate this to the caller so they can return (or program).
             Some(return_value) => return Ok(Some(return_value)),
             None => return Ok(None),
         },
@@ -58,15 +63,19 @@ fn eval_statement(
 }
 
 fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> {
-    let mut rpn_queue = shunting_yard::to_rpn(exp);
+    // use the shunting yard algorithm to convert the expression to postfix notation
+    let mut rpn_queue = shunting_yard::to_rpn_queue(exp);
 
+    // we then evaluate the postfix expression using a stack
     let mut stack: Vec<Value> = Vec::new();
 
     // evaluate rpn
     while !rpn_queue.is_empty() {
         let top = rpn_queue.remove(0).unwrap();
         match top {
+            // evaluate operators
             TermKind::Operator(op, _, _) => match op {
+                // unary (prefix) operators
                 OperatorKind::Unary(unop) => {
                     let next = stack.pop().unwrap();
                     
@@ -83,14 +92,15 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                         }
                     }
                 },
+                // infix operators
                 OperatorKind::Infix(infix) => {
 
                     let right = stack.pop().unwrap();
                     let left = stack.pop().unwrap();
-                    
                     stack.push(operations::infix(infix, left, right)?);
                    
                 }
+                // postfix operators
                 OperatorKind::Postfix(postop) => {
                     let next = stack.pop().unwrap();
                     match postop {
@@ -105,28 +115,41 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                         },
                         PostOp::Call(exps) => {
                             match next.clone() {
+                                // function/closure call
                                 Value::Closure { self_name, args, block, mut environment } => {
+                                    // ensure the call has the appropriate number of args for the function
                                     if exps.len() != args.len() {
                                         return Err(InterpreterError::ArgMismatch{ expected: args.len(), got: exps.len() })
                                     }
 
+                                    // bind the args to the actuals
                                     for i in 0..args.len() {
                                         environment.bind(args[i].clone(), eval_exp(exps[i].clone(), env)?)?;
                                     }
 
+                                    // if the closure being called was bound to a name
+                                    // bind that name to the function itself within its closure.
+                                    // allows for recursion.
                                     if let Some(self_name) = self_name {
                                         environment.bind(self_name.clone(), next.clone())?;
                                     }
 
+                                    // evaluate the closures body.
+                                    // if the block evaluates to none, the implicit result is null
                                     let result = eval_block(block.clone(), &mut environment)?.unwrap_or(Value::Null);
                                     stack.push(result);
                                 },
+                                // builtin call
                                 Value::Builtin(f) => {
                                     let mut actuals = Vec::with_capacity(exps.len());
+                                    // evaluate the actuals
                                     for actual in exps {
                                         actuals.push(eval_exp(actual, env)?);
                                     }
 
+                                    // call the builtin function body with the actuals.
+                                    // the function body is responsible for validating number of args
+                                    // for builtins, which allows dynamic number of args for certain builtins
                                     let result = (f.body)(actuals)?;
                                     stack.push(result);
                                 },
@@ -151,12 +174,15 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                     }
                 },
             },
+            // values get evaluated and pushed onto the stack
             TermKind::Value(v) => {
                 stack.push(eval_value(v, env)?);
             }
         }
     }
 
+    // after evaluating the expression, the final value on the stack is 
+    // the expressions result
     Ok(stack.pop().unwrap())
 }
 
@@ -164,7 +190,7 @@ fn eval_value(value: ValueKind, env: &mut Environment) -> Result<Value, Interpre
     match value {
         ValueKind::Paren(exp) => eval_exp(*exp, env),
         ValueKind::Structure(fields) => {
-            let mut map = HashMap::new();
+            let mut map = HashMap::with_capacity(fields.len());
             for field in fields {
                 map.insert(field.name, eval_exp(field.exp, env)?);
             }
@@ -192,6 +218,7 @@ fn eval_value(value: ValueKind, env: &mut Environment) -> Result<Value, Interpre
 
 fn eval_block(block: Block, env: &mut Environment) -> Result<Option<Value>, InterpreterError> {
     for statement in block.block {
+        // propagate return statements
         if let Some(return_value) = eval_statement(statement, env)? {
             return Ok(Some(return_value))
         }
@@ -225,28 +252,41 @@ fn eval_assign(
         
     }
 
+    // otherwise we need to recursively assign to arrays/structures
     let mut bound = env.get(name.clone())?;
     bound = assign_drilldown(bound, subassignment, rhs, env)?;
 
     env.bind(name, bound)
 }
 
+// recursive assignment for nested structures.
+// assign_to is the current thing being assigned to this iteration
+// assigments is the list of next things to assign to.
+// rhs is the final value being bound
 fn assign_drilldown(assign_to: Value, mut assignments: Vec<AssignableKind>, rhs: Exp, env: &mut Environment) -> Result<Value, InterpreterError> {
+    // base case, we have reached the last assignable, and we return the final value back
     if assignments.is_empty() {
         return eval_exp(rhs, env);
     }
+
+    // next thing we are assigning to, either an array index or a structure field
     let next = assignments.remove(0);
     match next {
         AssignableKind::ArrayIndex { index } => {
             if let Value::Array(mut arr) = assign_to {
+                // compute the index to assign to
                 let index_val: f64 = eval_exp(index, env)?.try_into()?;
-                let new_arr = arr.clone();
-                arr[index_val as usize] = assign_drilldown(
-                    new_arr[index_val as usize].clone(),
+                
+                // thing at the index we are assigning to
+                let inner_value = arr.remove(index_val as usize);
+
+                // re-insert after assinging to the inner value
+                arr.insert(index_val as usize, assign_drilldown(
+                    inner_value,
                     assignments,
                     rhs,
                     env,
-                )?;
+                )?);
 
                 return Ok(Value::Array(arr));
             }

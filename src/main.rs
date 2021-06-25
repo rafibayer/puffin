@@ -8,22 +8,12 @@ fn main() {
         process::exit(1);
     });
 
-    let value =puffin::run(config);
+    let value = puffin::run(config);
+    // if program value is null, we don't print it
     if let Value::Null = value {
         return;
     }
     println!("{}", value)
-
-    // match puffin::run(config) {
-        
-        // Ok(value) => {
-            
-        // }
-        // Err(e) => {
-        //     eprintln!("Error: {}", e.to_string());
-        //     process::exit(1);
-        // }
-    // }
 }
 
 

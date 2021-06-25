@@ -69,13 +69,4 @@ mod test {
             assert_eq!(run_program(program), output, "{}", program);
         }
     }
-
-    pub fn run_program(program: &str) -> Value {
-        let parsed = parser::PuffinParser::parse(puffin::Rule::program, program)
-            .unwrap()
-            .next()
-            .unwrap();
-        let ast = ast::build_program(parsed).unwrap();
-        interpreter::eval(ast).unwrap()
-    }
 }

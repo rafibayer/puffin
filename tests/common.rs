@@ -7,7 +7,7 @@ pub use puffin::{
 };
 
 pub fn run_program(program: &str) -> Value {
-    let parsed = parser::PuffinParser::parse(puffin::Rule::program, program)
+    let parsed = parser::PuffinParser::parse_program(program)
         .unwrap()
         .next()
         .unwrap();

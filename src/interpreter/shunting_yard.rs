@@ -4,7 +4,10 @@ use super::*;
 
 // shunting yard algorithm
 // https://en.wikipedia.org/wiki/Shunting-yard_algorithm
-pub fn to_rpn(exp: Exp) -> VecDeque<TermKind> {
+// converts an expression (a list of terms) into reverse polish notation
+// according to associativity and operator precedence.
+// example: 1 + 2 * 3 => 1 2 3 * +
+pub fn to_rpn_queue(exp: Exp) -> VecDeque<TermKind> {
     
     let mut op_stack: Vec<TermKind> = Vec::new();
     let mut out_queue: VecDeque<TermKind> = VecDeque::new();

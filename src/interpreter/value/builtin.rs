@@ -1,8 +1,9 @@
+use rand;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::io;
 
-use crate::interpreter::{InterpreterError, unexpected_type};
+use crate::interpreter::{unexpected_type, InterpreterError};
 use cached::proc_macro::cached;
 
 use super::Value;
@@ -71,54 +72,81 @@ pub fn get_builtins() -> HashMap<String, Value> {
         ),
         (
             "sin",
-            Value::Builtin(Builtin{
-                name: "sin", body: |v| builtin_floatops(v, f64::sin)
+            Value::Builtin(Builtin {
+                name: "sin",
+                body: |v| builtin_floatops(v, f64::sin),
             }),
         ),
         (
             "cos",
-            Value::Builtin(Builtin{
-                name: "cos", body: |v| builtin_floatops(v, f64::cos)
+            Value::Builtin(Builtin {
+                name: "cos",
+                body: |v| builtin_floatops(v, f64::cos),
             }),
-        ),(
+        ),
+        (
             "tan",
-            Value::Builtin(Builtin{
-                name: "tan", body: |v| builtin_floatops(v, f64::tan)
+            Value::Builtin(Builtin {
+                name: "tan",
+                body: |v| builtin_floatops(v, f64::tan),
             }),
-        ),(
+        ),
+        (
             "sqrt",
-            Value::Builtin(Builtin{
-                name: "sqrt", body: |v| builtin_floatops(v, f64::sqrt)
+            Value::Builtin(Builtin {
+                name: "sqrt",
+                body: |v| builtin_floatops(v, f64::sqrt),
             }),
-        ),(
+        ),
+        (
             "abs",
-            Value::Builtin(Builtin{
-                name: "abs", body: |v| builtin_floatops(v, f64::abs)
+            Value::Builtin(Builtin {
+                name: "abs",
+                body: |v| builtin_floatops(v, f64::abs),
             }),
-        ),(
+        ),
+        (
+            "round",
+            Value::Builtin(Builtin {
+                name: "round",
+                body: |v| builtin_floatops(v, f64::round),
+            }),
+        ),
+        (
             "input_str",
-            Value::Builtin(Builtin{
-                name: "input_str", body: |v| builtin_input(v, InputType::String)
-            })
-        ),(
+            Value::Builtin(Builtin {
+                name: "input_str",
+                body: |v| builtin_input(v, InputType::String),
+            }),
+        ),
+        (
             "input_num",
-            Value::Builtin(Builtin{
-                name: "input_num", body: |v| builtin_input(v, InputType::Num)
-            })
+            Value::Builtin(Builtin {
+                name: "input_num",
+                body: |v| builtin_input(v, InputType::Num),
+            }),
         ),
         (
             "push",
-            Value::Builtin(Builtin{
-                name: "push", body: builtin_push
-            })
+            Value::Builtin(Builtin {
+                name: "push",
+                body: builtin_push,
+            }),
         ),
         (
             "pop",
-            Value::Builtin(Builtin{
-                name: "pop", body: builtin_pop
-            })
+            Value::Builtin(Builtin {
+                name: "pop",
+                body: builtin_pop,
+            }),
         ),
-        
+        (
+            "rand",
+            Value::Builtin(Builtin {
+                name: "rand",
+                body: builtin_rand,
+            }),
+        ),
     ];
     builtins
         .into_iter()
@@ -163,7 +191,9 @@ where
 
 #[inline]
 fn builtin_floatops<F>(v: Vec<Value>, f: F) -> Result<Value, InterpreterError>
-where F: Fn(f64) -> f64 {
+where
+    F: Fn(f64) -> f64,
+{
     let arg = get_one(v)?;
     let float: f64 = arg.try_into()?;
     Ok(Value::from(f(float)))
@@ -171,7 +201,7 @@ where F: Fn(f64) -> f64 {
 
 enum InputType {
     String,
-    Num
+    Num,
 }
 
 fn builtin_input(v: Vec<Value>, input_type: InputType) -> Result<Value, InterpreterError> {
@@ -190,11 +220,13 @@ fn builtin_input(v: Vec<Value>, input_type: InputType) -> Result<Value, Interpre
             let parsed: f64 = if let Ok(n) = buf.parse() {
                 n
             } else {
-                return Err(InterpreterError::IOError("Failed to parse number".to_string()))
+                return Err(InterpreterError::IOError(
+                    "Failed to parse number".to_string(),
+                ));
             };
 
             Value::Num(parsed)
-        },
+        }
     })
 }
 
@@ -209,8 +241,6 @@ fn builtin_push(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
     Ok(Value::Array(array))
 }
 
-
-
 fn builtin_pop(v: Vec<Value>) -> Result<Value, InterpreterError> {
     let mut array: Vec<Value> = get_one(v)?.try_into()?;
 
@@ -220,8 +250,13 @@ fn builtin_pop(v: Vec<Value>) -> Result<Value, InterpreterError> {
         vec![("removed", removed), ("array", Value::Array(array))]
             .into_iter()
             .map(|(k, v)| (k.to_string(), v))
-            .collect()
+            .collect(),
     ))
+}
+
+fn builtin_rand(v: Vec<Value>) -> Result<Value, InterpreterError> {
+    expect_args(0, &v)?;
+    Ok(Value::Num(rand::random()))
 }
 
 #[inline]
@@ -233,7 +268,10 @@ fn get_one(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
 #[inline]
 fn expect_args<T>(n: usize, v: &[T]) -> Result<(), InterpreterError> {
     if v.len() != n {
-        return Err(InterpreterError::ArgMismatch{ expected: n, got: v.len() })
+        return Err(InterpreterError::ArgMismatch {
+            expected: n,
+            got: v.len(),
+        });
     }
 
     Ok(())

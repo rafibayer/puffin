@@ -35,6 +35,8 @@ use interpreter::value::Value;
 pub use parser::{Rule, PuffinParser};
 pub use pest::Parser;
 
+/// Puffin Run Config.
+/// Includes the filename of the program, as well as any optional flags
 pub struct Config {
     pub filename: String,
     pub show_parse: bool,
@@ -42,6 +44,9 @@ pub struct Config {
 }
 
 impl Config {
+    /// Create a Config `from std::env::args()`.
+    /// Note: expects that first argument is the puffin interpreter executable.
+    /// Example args: `["./puffin", "program.puf", "-ast", "-parse"]`
     pub fn new(args: &[String]) -> Result<Config, String> {
         if args.len() < 2 {
             return Err("Required Arguments: filename".to_string());
@@ -51,6 +56,7 @@ impl Config {
         let mut show_parse = false;
         let mut show_ast = false;
         
+        // parse optional flags
         for option in args.iter().skip(2) {
             match option.to_lowercase().as_str() {
                 "-parse" => {
@@ -71,13 +77,16 @@ impl Config {
     }
 }
 
+/// Runs a puffin program given a Config.
+/// Returns the program final output if successful.
+/// Prints errors to stderr and exits with non-zero exit code if errors are encountered.
 pub fn run(config: Config) -> Value {
     let contents = fs::read_to_string(config.filename.clone()).unwrap_or_else(|err| {
         eprintln!("Failed to read file: {:#?}", err);
         process::exit(1);
     });
     
-    let parsed = PuffinParser::parse(Rule::program, &contents).unwrap_or_else(|err| {
+    let parsed = PuffinParser::parse_program(&contents).unwrap_or_else(|err| {
         eprintln!("Parser Error: {}", parser::line_col(err));
         process::exit(1);
     });

@@ -2,6 +2,8 @@ use cached::proc_macro::cached;
 use super::node::*;
 use super::ASTError;
 
+/// Converts a string representation of an infix operator into
+/// the appropriate Operater variant of TermKind
 #[cached]
 pub fn infix(op: String) -> Result<TermKind, ASTError> {
     Ok(match op.as_str() {
@@ -78,6 +80,8 @@ pub fn infix(op: String) -> Result<TermKind, ASTError> {
     })
 }
 
+/// Converts a string representation of an unary (prefix) operator into
+/// the appropriate Operater variant of TermKind
 #[cached]
 pub fn unary(op: String) -> Result<TermKind, ASTError> {
 
@@ -96,6 +100,9 @@ pub fn unary(op: String) -> Result<TermKind, ASTError> {
     })
 }
 
+/// Returns true if name is a reserved keyword
+// not cached as name could be any variable name, not just limited subset
+// of operators like other lookups
 pub fn is_keyword(name: &str) -> bool {
     matches!(name, "fn" | "if" | "else" | "return" | "for" | "while" | "null")
 }

@@ -1,3 +1,10 @@
+/*!
+This module contains definitons for all AST nodes.
+The root node is the struct Program, 
+which contains a vector of all the programs statements
+*/
+
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Program {
     pub program: Vec<Statement>,
@@ -33,9 +40,11 @@ pub struct Exp {
     pub exp: Vec<TermKind>,
 }
 
+type Precedence = usize;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum TermKind {
-    Operator(OperatorKind, Associativity, usize),
+    Operator(OperatorKind, Associativity, Precedence),
     Value(ValueKind),
 }
 

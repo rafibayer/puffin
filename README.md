@@ -100,10 +100,11 @@ println(arr);
 - `print(args)`: prints elements of `args` delimited by spaces
 - `println(args)`: prints elements of `args` delimited by newlines
 - `error(args)`: printlns `args` to sterr and exits with non-zero exit code
-- `sin(a)`, `cos(a)`, `tan(a)`, `sqrt(a)`, `abs(a)`: standard math functions
+- `sin(a)`, `cos(a)`, `tan(a)`, `sqrt(a)`, `abs(a)`, `round(a)`: standard math functions
 - `input_str(args)`, `input_num(args)`: prints args as prompt, parses next line from stdin as string or number.
 - `push(a, b)`: pushes `b` onto the array `a`, returning the new array `a'`
 - `pop(a)`: pops the last element `b`, off `a`, returning a struct in the form `{array: a', removed: b}`
+- `rand()`: returns a uniformly distributed random number between 0 and 1
 
 
 ## Types
