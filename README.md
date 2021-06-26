@@ -103,13 +103,13 @@ println(arr);
 - `error(...)`: printlns args to sterr and exits with non-zero exit code
 - `sin(a)`, `cos(a)`, `tan(a)`, `sqrt(a)`, `abs(a)`, `round(a)`: standard math functions
 - `input_str(...)`, `input_num(...)`: prints args as prompt, parses next line from stdin as string or number.
-- `push(a, b)`: pushes `b` onto the array `a`, returning the new array `a'`
-- `pop(a)`: pops the last element `b`, off `a`, returning a struct in the form `{array: a', removed: b}`
+- `push(a, b)`: pushes `b` onto the array `a`
+- `pop(a)`: pops the last element `b`, off `a`, returning `b`
 - `rand()`: returns a uniformly distributed random number between 0 and 1
 
 
 ## Types
-`Puffin` supports the following types. All types are pass by value. If you modify a parameter to a function you will need to return in back to the caller, however this is trivial with dynamic structures and arrays which can be used to bundle return values if needed:
+`Puffin` supports the following types. All types are pass by value with the exception of `Array` and `Structure`, which are pass by refrence.
 - `Null`
 - `Num`
 - `String`
