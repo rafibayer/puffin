@@ -1,6 +1,8 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::fmt::{Debug, Display};
+use std::rc::Rc;
 
 use super::InterpreterError;
 use crate::ast::node::*;
@@ -17,7 +19,7 @@ pub enum Value {
     Null,
     Num(f64),
     String(String),
-    Array(Vec<Value>),
+    Array(Rc<RefCell<Vec<Value>>>),
     Structure(HashMap<String, Value>),
     Closure {
         self_name: Option<String>,
@@ -38,7 +40,7 @@ impl Display for Value {
             Value::Array(v) => {
                 let mut buf = String::from("[");
                 buf.push_str(
-                    &v.iter()
+                    &v.borrow().iter()
                         .map(|e| e.to_string())
                         .collect::<Vec<String>>()
                         .join(", "),
@@ -92,10 +94,11 @@ impl TryInto<String> for Value {
     }
 }
 
-impl TryInto<Vec<Value>> for Value {
+
+impl TryInto<Rc<RefCell<Vec<Value>>>> for Value {
     type Error = InterpreterError;
 
-    fn try_into(self) -> Result<Vec<Value>, Self::Error> {
+    fn try_into(self) -> Result<Rc<RefCell<Vec<Value>>>, Self::Error> {
         match self {
             Value::Array(arr) => Ok(arr),
             _=> Err(unexpected_type(self))
@@ -118,7 +121,7 @@ impl From<String> for Value {
 
 impl From<Vec<Value>> for Value {
     fn from(v: Vec<Value>) -> Self {
-        Value::Array(v)
+        Value::Array(Rc::new(RefCell::new(v)))
     }
 }
 

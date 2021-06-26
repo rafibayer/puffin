@@ -1,11 +1,11 @@
 use rand;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::io;
+use std::rc::Rc;
 
 use crate::interpreter::{unexpected_type, InterpreterError};
-use cached::proc_macro::cached;
-
 use super::Value;
 
 pub struct Builtin {
@@ -35,7 +35,6 @@ impl PartialEq for Builtin {
     }
 }
 
-#[cached]
 pub fn get_builtins() -> HashMap<String, Value> {
     let builtins = vec![
         ("PI", Value::from(std::f64::consts::PI)),
@@ -165,7 +164,7 @@ fn builtin_len(v: Vec<Value>) -> Result<Value, InterpreterError> {
     let arg = get_one(v)?;
     match arg {
         Value::String(s) => Ok(Value::from(s.len() as f64)),
-        Value::Array(a) => Ok(Value::from(a.len() as f64)),
+        Value::Array(a) => Ok(Value::from(a.borrow().len() as f64)),
         Value::Structure(s) => Ok(Value::from(s.len() as f64)),
         _ => Err(unexpected_type(arg.clone())),
     }
@@ -241,24 +240,19 @@ fn builtin_push(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
     expect_args(2, &v)?;
 
     let value = v.pop().unwrap();
-    let mut array: Vec<Value> = v.pop().unwrap().try_into()?;
+    let array: Rc<RefCell<Vec<Value>>> = v.pop().unwrap().try_into()?;
 
-    array.push(value);
+    array.borrow_mut().push(value);
 
     Ok(Value::Array(array))
 }
 
 fn builtin_pop(v: Vec<Value>) -> Result<Value, InterpreterError> {
-    let mut array: Vec<Value> = get_one(v)?.try_into()?;
+    let array: Rc<RefCell<Vec<Value>>> = get_one(v)?.try_into()?;
 
-    let removed = array.pop().unwrap();
+    let removed = array.borrow_mut().pop().unwrap().clone();
 
-    Ok(Value::Structure(
-        vec![("removed", removed), ("array", Value::Array(array))]
-            .into_iter()
-            .map(|(k, v)| (k.to_string(), v))
-            .collect(),
-    ))
+    Ok(Value::from(removed))
 }
 
 fn builtin_rand(v: Vec<Value>) -> Result<Value, InterpreterError> {

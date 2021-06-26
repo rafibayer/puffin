@@ -18,8 +18,8 @@ mod test {
                 r#"return "hello, world!";"#,
                 Value::String("hello, world!".to_string()),
             ),
-            (r#"return [0];"#, Value::Array(Vec::new())),
-            (r#"return [5];"#, Value::Array(vec![Value::Null; 5])),
+            (r#"return [0];"#, Value::from(Vec::new())),
+            (r#"return [5];"#, Value::from(vec![Value::Null; 5])),
             (r#"return {};"#, Value::Structure(HashMap::new())),
             (
                 r#"return {fieldname: 123};"#,

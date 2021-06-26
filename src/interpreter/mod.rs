@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryInto, f64::EPSILON, fmt::Display, usize};
+use std::{cell::RefCell, collections::HashMap, convert::TryInto, f64::EPSILON, fmt::Display, rc::Rc, usize};
 
 use crate::ast::node::*;
 use value::Environment;
@@ -100,7 +100,7 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                         PostOp::Subscript(exp) => match next {
                             Value::Array(arr) => {
                                 let index: f64 = eval_exp(*exp, env)?.try_into()?;
-                                stack.push(arr[index as usize].clone());
+                                stack.push(arr.borrow()[index as usize].clone());
                             }
                             _ => return Err(unexpected_type(next)),
                         },
@@ -213,7 +213,7 @@ fn eval_value(value: ValueKind, env: &mut Environment) -> Result<Value, Interpre
         ValueKind::ArrayInit(size_exp) => {
             let size_float: f64 = eval_exp(*size_exp, env)?.try_into()?;
             let size = size_float as usize;
-            Ok(Value::Array(vec![Value::Null; size]))
+            Ok(Value::Array(Rc::new(RefCell::new(vec![Value::Null; size]))))
         }
         ValueKind::Name(name) => env.get(name),
         ValueKind::Null => Ok(Value::Null),
@@ -290,15 +290,17 @@ fn assign_drilldown(
     let next = assignments.remove(0);
     match next {
         AssignableKind::ArrayIndex { index } => {
-            if let Value::Array(mut arr) = assign_to {
+            if let Value::Array(arr) = assign_to {
                 // compute the index to assign to
                 let index_val: f64 = eval_exp(index, env)?.try_into()?;
 
+                
                 // thing at the index we are assigning to
-                let inner_value = arr.remove(index_val as usize);
+                let inner_value = arr.borrow_mut().remove(index_val as usize);
+
 
                 // re-insert after assinging to the inner value
-                arr.insert(
+                arr.borrow_mut().insert(
                     index_val as usize,
                     assign_drilldown(inner_value, assignments, rhs, env)?,
                 );
