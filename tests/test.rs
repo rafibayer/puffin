@@ -20,13 +20,13 @@ mod test {
             ),
             (r#"return [0];"#, Value::from(Vec::new())),
             (r#"return [5];"#, Value::from(vec![Value::Null; 5])),
-            (r#"return {};"#, Value::Structure(HashMap::new())),
+            (r#"return {};"#, Value::from(HashMap::new())),
             (
                 r#"return {fieldname: 123};"#,
-                Value::Structure(
+                Value::from(
                     vec![("fieldname".to_string(), Value::Num(123f64))]
                         .into_iter()
-                        .collect(),
+                        .collect::<HashMap<String, Value>>(),
                 ),
             ),
             (

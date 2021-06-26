@@ -165,7 +165,7 @@ fn builtin_len(v: Vec<Value>) -> Result<Value, InterpreterError> {
     match arg {
         Value::String(s) => Ok(Value::from(s.len() as f64)),
         Value::Array(a) => Ok(Value::from(a.borrow().len() as f64)),
-        Value::Structure(s) => Ok(Value::from(s.len() as f64)),
+        Value::Structure(s) => Ok(Value::from(s.borrow().len() as f64)),
         _ => Err(unexpected_type(arg.clone())),
     }
 }

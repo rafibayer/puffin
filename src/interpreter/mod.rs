@@ -163,7 +163,7 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                         }
                         PostOp::Dot(name) => match next {
                             Value::Structure(map) => {
-                                let result = match map.get(&name) {
+                                let result = match map.borrow().get(&name) {
                                     Some(value) => value.clone(),
                                     None => return Err(InterpreterError::UnboundName(name)),
                                 };
@@ -195,7 +195,7 @@ fn eval_value(value: ValueKind, env: &mut Environment) -> Result<Value, Interpre
             for field in fields {
                 map.insert(field.name, eval_exp(field.exp, env)?);
             }
-            Ok(Value::Structure(map))
+            Ok(Value::from(map))
         }
         ValueKind::FunctionDef { args, block } => {
             // functions evaluate to a closure that captures the local environment.
@@ -310,15 +310,15 @@ fn assign_drilldown(
             Err(unexpected_type(assign_to))
         }
         AssignableKind::StructureField { field } => {
-            if let Value::Structure(mut structure) = assign_to {
+            if let Value::Structure(structure) = assign_to {
 
                 // either assign to substruct
-                let inner_value = match structure.remove(&field) {
+                let inner_value = match structure.borrow_mut().remove(&field) {
                     Some(f) => f,
                     // or create the new struct
-                    None => Value::Structure(HashMap::new()),
+                    None => Value::from(HashMap::new()),
                 };
-                structure.insert(field, assign_drilldown(inner_value, assignments, rhs, env)?);
+                structure.borrow_mut().insert(field, assign_drilldown(inner_value, assignments, rhs, env)?);
 
                 return Ok(Value::Structure(structure));
             }

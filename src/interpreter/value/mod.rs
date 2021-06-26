@@ -20,7 +20,7 @@ pub enum Value {
     Num(f64),
     String(String),
     Array(Rc<RefCell<Vec<Value>>>),
-    Structure(HashMap<String, Value>),
+    Structure(Rc<RefCell<HashMap<String, Value>>>),
     Closure {
         self_name: Option<String>,
         args: Vec<String>,
@@ -50,7 +50,7 @@ impl Display for Value {
             Value::Structure(s) => {
                 let mut buf = String::from("{");
                 buf.push_str(
-                    &s.iter()
+                    &s.borrow().iter()
                         .map(|(k, v)| format!("{}: {}", k, v))
                         .collect::<Vec<String>>()
                         .join(", "),
@@ -122,6 +122,13 @@ impl From<String> for Value {
 impl From<Vec<Value>> for Value {
     fn from(v: Vec<Value>) -> Self {
         Value::Array(Rc::new(RefCell::new(v)))
+    }
+}
+
+impl From<HashMap<String, Value>> for Value {
+
+    fn from(v: HashMap<String, Value>) -> Self {
+        Value::Structure(Rc::new(RefCell::new(v)))
     }
 }
 
