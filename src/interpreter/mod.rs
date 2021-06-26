@@ -239,6 +239,7 @@ fn eval_assign(
     let name = lhs.name;
     let subassignment = lhs.assignable;
 
+
     // simple assignment to name (a = something),
     // no subassignment (like a[5], or a.b)
     if subassignment.is_empty() {
@@ -266,6 +267,8 @@ fn eval_assign(
 
     // otherwise we need to recursively assign to arrays/structures
     let mut bound = env.get(name.clone())?;
+    let rhs = eval_exp(rhs, env)?;
+
     bound = assign_drilldown(bound, subassignment, rhs, env)?;
 
     env.bind(name, bound)
@@ -278,12 +281,12 @@ fn eval_assign(
 fn assign_drilldown(
     assign_to: Value,
     mut assignments: Vec<AssignableKind>,
-    rhs: Exp,
+    rhs: Value,
     env: &mut Environment,
 ) -> Result<Value, InterpreterError> {
     // base case, we have reached the last assignable, and we return the final value back
     if assignments.is_empty() {
-        return eval_exp(rhs, env);
+        return Ok(rhs);
     }
 
     // next thing we are assigning to, either an array index or a structure field
@@ -293,11 +296,9 @@ fn assign_drilldown(
             if let Value::Array(arr) = assign_to {
                 // compute the index to assign to
                 let index_val: f64 = eval_exp(index, env)?.try_into()?;
-
                 
                 // thing at the index we are assigning to
                 let inner_value = arr.borrow_mut().remove(index_val as usize);
-
 
                 // re-insert after assinging to the inner value
                 arr.borrow_mut().insert(

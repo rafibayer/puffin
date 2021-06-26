@@ -141,6 +141,10 @@ Example: `$ puffin program.puf`
 - Runtime/AST error line numbers
 - Imports/multi-file programs? standard library?
 
+## Known Issues
+- Displaying circular structures is unsupported and will cause a stack-overflow:  
+`a[0] = a; print(a) // <- this print will cause a stack overflow`
+
 <hr>
 
 ```art lol

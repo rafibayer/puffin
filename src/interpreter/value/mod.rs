@@ -38,6 +38,7 @@ impl Display for Value {
             Value::Num(n) => write!(f, "{}", n),
             Value::String(s) => write!(f, "{}", s),
             Value::Array(v) => {
+                // todo: pointer cycle check
                 let mut buf = String::from("[");
                 buf.push_str(
                     &v.borrow().iter()
@@ -48,6 +49,8 @@ impl Display for Value {
                 write!(f, "{}]", buf)
             }
             Value::Structure(s) => {
+                // todo: pointer cycle check
+
                 let mut buf = String::from("{");
                 buf.push_str(
                     &s.borrow().iter()
