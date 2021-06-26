@@ -141,6 +141,10 @@ Example: `$ puffin program.puf`
 - Runtime/AST error line numbers
 - Imports/multi-file programs? standard library?
 
+## Known Issues
+- Circular Assigments are unsupported and will cause a stack-overflow:  
+`a[0] = a;`
+
 <hr>
 
 ```art lol
