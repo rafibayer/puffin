@@ -50,6 +50,13 @@ pub fn get_builtins() -> HashMap<String, Value> {
             }),
         ),
         (
+            "str",
+            Value::from(Builtin {
+                name: "str",
+                body: builtin_str,
+            }),
+        ),
+        (
             "print",
             Value::from(Builtin {
                 name: "print",
@@ -170,7 +177,7 @@ fn builtin_print(v: Vec<Value>) -> Result<Value, InterpreterError> {
 }
 
 fn builtin_println(v: Vec<Value>) -> Result<Value, InterpreterError> {
-    output(v, |e| println!("{} ", e));
+    output(v, |e| println!("{}", e));
     Ok(Value::Null)
 }
 
@@ -181,12 +188,12 @@ fn builtin_error(v: Vec<Value>) -> Result<Value, InterpreterError> {
 
 fn output<F>(v: Vec<Value>, f: F)
 where
-    F: Fn(&Value),
+    F: Fn(String),
 {
-    // todo: fencepost
-    for e in &v {
-        f(e);
-    }
+    f(v.iter()
+        .map(|e| e.to_string())
+        .collect::<Vec<String>>()
+        .join(" "));
 }
 
 #[inline]
@@ -257,6 +264,11 @@ fn builtin_pop(v: Vec<Value>) -> Result<Value, InterpreterError> {
 fn builtin_rand(v: Vec<Value>) -> Result<Value, InterpreterError> {
     expect_args(0, &v)?;
     Ok(Value::Num(rand::random()))
+}
+
+fn builtin_str(v: Vec<Value>) -> Result<Value, InterpreterError> {
+    let arg = get_one(v)?;
+    Ok(Value::String(arg.to_string()))
 }
 
 #[inline]

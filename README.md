@@ -74,7 +74,7 @@ println(user.contact);
 ```
 
 ## Arrays
-`puffin` Arrays are fixed sized data-structures, `puffin` allows arrays to have mixed types (this includes other arrays). See the [Builtins](##Builtins) section for more ways to manipulate arrays.
+`puffin` Arrays are fixed sized data-structures, `puffin` allows arrays to have mixed types (this includes other arrays). See the [Builtins](##Builtins) section for more ways to manipulate arrays. Array indices have the initial value of null. 
 
 ```rs
 // create a new array of size 5
@@ -96,12 +96,13 @@ println(arr);
 - `true`: 1
 - `false`: 0
 - `EPSILON`: Rust `std::f64::EPSILON`
+- `str(a)`: Returns string representation of `a`
 - `len(a)`: Returns length of array, string, or structure `a`
-- `print(args)`: prints elements of `args` delimited by spaces
-- `println(args)`: prints elements of `args` delimited by newlines
-- `error(args)`: printlns `args` to sterr and exits with non-zero exit code
+- `print(...)`: prints elements of args delimited by spaces
+- `println(...)`: prints elements of args delimited by spaces, followed by a newline
+- `error(...)`: printlns args to sterr and exits with non-zero exit code
 - `sin(a)`, `cos(a)`, `tan(a)`, `sqrt(a)`, `abs(a)`, `round(a)`: standard math functions
-- `input_str(args)`, `input_num(args)`: prints args as prompt, parses next line from stdin as string or number.
+- `input_str(...)`, `input_num(...)`: prints args as prompt, parses next line from stdin as string or number.
 - `push(a, b)`: pushes `b` onto the array `a`, returning the new array `a'`
 - `pop(a)`: pops the last element `b`, off `a`, returning a struct in the form `{array: a', removed: b}`
 - `rand()`: returns a uniformly distributed random number between 0 and 1
