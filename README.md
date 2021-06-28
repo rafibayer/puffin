@@ -19,7 +19,7 @@ print(fact(input_num("Factorial: ")));
 ```
 
 # Features
-`Puffin` Supports a mix of structural and dynamic language features:
+`Puffin` Supports a mix of imperative and functional language features:
 
 ## First-Class Functions
 `Puffin` functions are closures which capture their environment when evaluated, if bound to a name, functions may also be used recursively. `Puffin` functions are declared with the keyword `fn`, followed by any number of argument names in parens, and finally, the associated function body between curlies, or a single expression.
