@@ -56,7 +56,7 @@ call_twice(fn() => println("Hello World"));
 // create a structure
 user = {
     name: "Rafi",
-    Age: 22,
+    age: 22,
     contact: {
         github: "github.com/rafibayer",
         linkedin: "linkedin.com/in/rafael-bayer"
@@ -140,10 +140,6 @@ Example: `$ puffin program.puf`
 - More builtins
 - Runtime/AST error line numbers
 - Imports/multi-file programs? standard library?
-
-## Known Issues
-- Displaying circular structures is unsupported and will cause a stack-overflow:  
-`a[0] = a; print(a) // <- this print will cause a stack overflow`
 
 <hr>
 

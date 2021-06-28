@@ -241,18 +241,14 @@ fn builtin_push(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
 
     let value = v.pop().unwrap();
     let array: Rc<RefCell<Vec<Value>>> = v.pop().unwrap().try_into()?;
-
     array.borrow_mut().push(value);
-
     Ok(Value::Array(array))
 }
 
 fn builtin_pop(v: Vec<Value>) -> Result<Value, InterpreterError> {
     let array: Rc<RefCell<Vec<Value>>> = get_one(v)?.try_into()?;
-
-    let removed = array.borrow_mut().pop().unwrap().clone();
-
-    Ok(Value::from(removed))
+    let removed = array.borrow_mut().pop().unwrap();
+    Ok(removed)
 }
 
 fn builtin_rand(v: Vec<Value>) -> Result<Value, InterpreterError> {

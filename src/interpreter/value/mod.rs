@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::fmt::{Debug, Display};
 use std::rc::Rc;
@@ -30,6 +30,7 @@ pub enum Value {
     Builtin(Builtin),
 }
 
+const CIRCULAR_REF: &str = "...";
 
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -38,27 +39,11 @@ impl Display for Value {
             Value::Num(n) => write!(f, "{}", n),
             Value::String(s) => write!(f, "{}", s),
             Value::Array(v) => {
-                // todo: pointer cycle check
-                let mut buf = String::from("[");
-                buf.push_str(
-                    &v.borrow().iter()
-                        .map(|e| e.to_string())
-                        .collect::<Vec<String>>()
-                        .join(", "),
-                );
-                write!(f, "{}]", buf)
+                write!(f, "{}", stringify_array(v, &mut HashSet::new()))
             }
             Value::Structure(s) => {
-                // todo: pointer cycle check
+                write!(f, "{}", stringify_struct(s, &mut HashSet::new()))
 
-                let mut buf = String::from("{");
-                buf.push_str(
-                    &s.borrow().iter()
-                        .map(|(k, v)| format!("{}: {}", k, v))
-                        .collect::<Vec<String>>()
-                        .join(", "),
-                );
-                write!(f, "{}}}", buf)
             }
             Value::Closure { args, self_name, .. } => {
                 let argstr = args.join(", ");
@@ -73,6 +58,74 @@ impl Display for Value {
             }
         }
     }
+}
+
+
+// safely stringify's the contents of a puffin array.
+// checks for circular refrences, replacing them with a constant string
+// todo: possible to make this generic and combine with method below?
+pub fn stringify_array(array: &Rc<RefCell<Vec<Value>>>, seen: &mut HashSet<usize>) -> String {
+    seen.insert(array.as_ptr() as usize);
+
+    let result = array
+        .borrow()
+        .iter()
+        .map(|element| {
+            match element {
+                Value::Array(inner) => {
+                    if seen.contains(&(inner.as_ptr() as usize)) {
+                        format!("[{}]", CIRCULAR_REF)
+                    } else {
+                        stringify_array(inner, seen)
+                    }
+                },
+                Value::Structure(inner) => {
+                    if seen.contains(&(inner.as_ptr() as usize)) {
+                        format!("{{{}}}", CIRCULAR_REF)
+                    } else {
+                        stringify_struct(inner, seen)
+                    }
+                }
+                other => other.to_string()
+            }
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    format!("[{}]", result)
+}
+
+// safely stringify's the contents of a puffin structure.
+// checks for circular refrences, replacing them with a constant string
+pub fn stringify_struct(structure: &Rc<RefCell<HashMap<String, Value>>>, seen: &mut HashSet<usize>) -> String {
+    seen.insert(structure.as_ptr() as usize);
+
+    let result = structure
+        .borrow()
+        .iter()
+        .map(|(_, element)| {
+            match element {
+                Value::Structure(inner) => {
+                    if seen.contains(&(inner.as_ptr() as usize)) {
+                        format!("{{{}}}", CIRCULAR_REF)
+                    } else {
+                        stringify_struct(inner, seen)
+                    }
+                },
+                Value::Array(inner) => {
+                    if seen.contains(&(inner.as_ptr() as usize)) {
+                        format!("[{}]", CIRCULAR_REF)
+                    } else {
+                        stringify_array(inner, seen)
+                    }
+                }
+                other => other.to_string()
+            }
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    format!("{{{}}}", result)
 }
 
 impl TryInto<f64> for Value {
