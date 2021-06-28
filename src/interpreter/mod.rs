@@ -16,7 +16,8 @@ pub enum InterpreterError {
     BuiltinRebinding(String),
     UnexepectedOperator(String),
     IOError(String),
-    RuntimeError,
+    BoundsError {index: usize, size: usize},
+    Error,
 }
 
 /// evaluates a program AST. Entrypoint of the interpreter
@@ -100,7 +101,12 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                         PostOp::Subscript(exp) => match next {
                             Value::Array(arr) => {
                                 let index: f64 = eval_exp(*exp, env)?.try_into()?;
-                                stack.push(arr.borrow()[index as usize].clone());
+                                let index = index as usize;
+
+                                if index >= arr.borrow().len() {
+                                    return Err(InterpreterError::BoundsError{ index, size: arr.borrow().len() });
+                                }
+                                stack.push(arr.borrow()[index].clone());
                             }
                             _ => return Err(unexpected_type(next)),
                         },
@@ -296,13 +302,18 @@ fn assign_drilldown(
             if let Value::Array(arr) = assign_to {
                 // compute the index to assign to
                 let index_val: f64 = eval_exp(index, env)?.try_into()?;
+                let index_val = index_val as usize;
+
+                if index_val >= arr.borrow().len() {
+                    return Err(InterpreterError::BoundsError{ index: index_val, size: arr.borrow().len() })
+                }
                 
                 // thing at the index we are assigning to
-                let inner_value = arr.borrow_mut().remove(index_val as usize);
+                let inner_value = arr.borrow_mut().remove(index_val);
 
                 // re-insert after assinging to the inner value
                 arr.borrow_mut().insert(
-                    index_val as usize,
+                    index_val,
                     assign_drilldown(inner_value, assignments, rhs, env)?,
                 );
 

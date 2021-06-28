@@ -32,6 +32,7 @@ pub enum Value {
 
 const CIRCULAR_REF: &str = "...";
 
+// Display of all Puffin Types
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -48,9 +49,10 @@ impl Display for Value {
             Value::Closure { args, self_name, .. } => {
                 let argstr = args.join(", ");
                 if let Some(name) = self_name {
+                    // named function
                     return write!(f, "<{} fn({})> ", name, argstr)
-
                 }
+                // anonymous function/lambda 
                 write!(f, "<λ fn({})> ", argstr)
             },
             Value::Builtin(b) => {
@@ -103,23 +105,23 @@ pub fn stringify_struct(structure: &Rc<RefCell<HashMap<String, Value>>>, seen: &
     let result = structure
         .borrow()
         .iter()
-        .map(|(_, element)| {
+        .map(|(name, element)| {
             match element {
                 Value::Structure(inner) => {
                     if seen.contains(&(inner.as_ptr() as usize)) {
-                        format!("{{{}}}", CIRCULAR_REF)
+                        format!("{}: {{{}}}", name, CIRCULAR_REF)
                     } else {
-                        stringify_struct(inner, seen)
+                        format!("{}: {}", name, stringify_struct(inner, seen))
                     }
                 },
                 Value::Array(inner) => {
                     if seen.contains(&(inner.as_ptr() as usize)) {
-                        format!("[{}]", CIRCULAR_REF)
+                        format!("{}: [{}]", name, CIRCULAR_REF)
                     } else {
-                        stringify_array(inner, seen)
+                        format!("{}: {}", name, stringify_array(inner, seen))
                     }
                 }
-                other => other.to_string()
+                other => format!("{}: {}", name, other)
             }
         })
         .collect::<Vec<String>>()

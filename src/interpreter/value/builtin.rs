@@ -182,7 +182,7 @@ fn builtin_println(v: Vec<Value>) -> Result<Value, InterpreterError> {
 
 fn builtin_error(v: Vec<Value>) -> Result<Value, InterpreterError> {
     output(v, |e| eprintln!("ERR: {} ", e));
-    Err(InterpreterError::RuntimeError)
+    Err(InterpreterError::Error)
 }
 
 fn output<F>(v: Vec<Value>, f: F)
@@ -234,7 +234,7 @@ fn builtin_input(v: Vec<Value>, input_type: InputType) -> Result<Value, Interpre
             Value::Num(parsed)
         }
     })
-}
+} 
 
 fn builtin_push(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
     expect_args(2, &v)?;
@@ -247,6 +247,9 @@ fn builtin_push(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
 
 fn builtin_pop(v: Vec<Value>) -> Result<Value, InterpreterError> {
     let array: Rc<RefCell<Vec<Value>>> = get_one(v)?.try_into()?;
+    if array.borrow().len() == 0 {
+        return Err(InterpreterError::BoundsError{ index: 0, size: 0 })
+    }
     let removed = array.borrow_mut().pop().unwrap();
     Ok(removed)
 }
