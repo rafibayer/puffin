@@ -38,6 +38,7 @@ pub enum AssignableKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Exp {
     pub exp: Vec<TermKind>,
+    pub line: usize,
 }
 
 type Precedence = usize;

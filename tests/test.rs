@@ -1,13 +1,11 @@
 mod common;
 
-
 #[cfg(test)]
 mod test {
 
     use super::common::*;
     use std::collections::HashMap;
 
-    
     // test programs that return literals
     #[test]
     fn test_value() {
@@ -56,6 +54,7 @@ mod test {
                         block: vec![Statement {
                             statement: StatementKind::Return(Exp {
                                 exp: vec![TermKind::Value(ValueKind::Name("a".to_string()))],
+                                line: 1,
                             }),
                         }],
                     },
@@ -63,6 +62,77 @@ mod test {
                 },
             ),
             (r#"return (1 + 1);"#, Value::Num(2f64)),
+            (
+                r#"
+                fact = fn(n) {
+                    if (n < 2) {
+                        return 1;
+                    }
+
+                    return n * fact(n - 1);
+                };
+
+                arr = [10];
+                for (i = 0; i < 10; i += 1) {
+                    arr[i] = fact(i + 1);
+                }
+
+                return arr;
+            "#,
+                Value::from(
+                    vec![1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800]
+                        .into_iter()
+                        .map(|e| Value::from(e as f64))
+                        .collect::<Vec<Value>>(),
+                ),
+            ),
+            (
+                r#"
+                curry_add = fn(a) {
+                    return fn(b) => a + b;
+                };
+                
+                c10 = curry_add(10);
+                return c10(7);
+            "#,
+                Value::from(17f64),
+            ),
+            (
+                r#"return "hello, " + "world!";"#,
+                Value::String("hello, world!".to_string())
+            ),
+            (
+                r#"
+                s1 = {
+                    k1: 1,
+                    k2: 2,
+                    k3: 3,
+                    k4: [10]
+                };
+                
+                a1 = [5];
+
+                st = "abcdef";
+                
+                return len(s1) + len(a1) + len(st);
+                "#,
+                Value::from(15f64)
+            ),
+            (
+                r#"
+                rev = fn(string) {
+                    res = "";
+                    for (i = len(string)-1; i >= 0; i = i - 1) {
+                        res += string[i];
+                    }
+                
+                    return res;
+                };
+                
+                return rev("hello, world!");
+                "#,
+                Value::String("!dlrow ,olleh".to_string())
+            )
         ];
 
         for (program, output) in tests {

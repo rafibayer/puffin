@@ -1,4 +1,7 @@
-use std::{cell::RefCell, collections::HashMap, convert::TryInto, f64::EPSILON, fmt::Display, rc::Rc, usize};
+use std::{
+    cell::RefCell, collections::HashMap, convert::TryInto, f64::EPSILON, fmt::Display, rc::Rc,
+    usize,
+};
 
 use crate::ast::node::*;
 use value::Environment;
@@ -16,7 +19,7 @@ pub enum InterpreterError {
     BuiltinRebinding(String),
     UnexepectedOperator(String),
     IOError(String),
-    BoundsError {index: usize, size: usize},
+    BoundsError { index: usize, size: usize },
     Error,
 }
 
@@ -98,18 +101,33 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                 OperatorKind::Postfix(postop) => {
                     let next = stack.pop().unwrap();
                     match postop {
-                        PostOp::Subscript(exp) => match next {
-                            Value::Array(arr) => {
-                                let index: f64 = eval_exp(*exp, env)?.try_into()?;
-                                let index = index as usize;
-
-                                if index >= arr.borrow().len() {
-                                    return Err(InterpreterError::BoundsError{ index, size: arr.borrow().len() });
+                        PostOp::Subscript(exp) => {
+                            let index: f64 = eval_exp(*exp, env)?.try_into()?;
+                            let index = index as usize;
+                            match next {
+                                Value::Array(arr) => {
+                                    if index >= arr.borrow().len() {
+                                        return Err(InterpreterError::BoundsError {
+                                            index,
+                                            size: arr.borrow().len(),
+                                        });
+                                    }
+                                    stack.push(arr.borrow()[index].clone());
                                 }
-                                stack.push(arr.borrow()[index].clone());
+                                Value::String(string) => {
+                                    if index >= string.len() {
+                                        return Err(InterpreterError::BoundsError {
+                                            index,
+                                            size: string.len(),
+                                        });
+                                    }
+                                    stack.push(Value::from(
+                                        (string.as_bytes()[index] as char).to_string(),
+                                    ));
+                                }
+                                _ => return Err(unexpected_type(next)),
                             }
-                            _ => return Err(unexpected_type(next)),
-                        },
+                        }
                         PostOp::Call(exps) => {
                             match next.clone() {
                                 // function/closure call
@@ -139,7 +157,7 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                                     // bind that name to the function itself within its closure.
                                     // allows for recursion.
                                     if let Some(self_name) = self_name {
-                                        environment.bind(self_name.clone(), next.clone())?;
+                                        environment.bind(self_name.clone(), next)?;
                                     }
 
                                     // evaluate the closures body.
@@ -245,7 +263,6 @@ fn eval_assign(
     let name = lhs.name;
     let subassignment = lhs.assignable;
 
-
     // simple assignment to name (a = something),
     // no subassignment (like a[5], or a.b)
     if subassignment.is_empty() {
@@ -305,9 +322,12 @@ fn assign_drilldown(
                 let index_val = index_val as usize;
 
                 if index_val >= arr.borrow().len() {
-                    return Err(InterpreterError::BoundsError{ index: index_val, size: arr.borrow().len() })
+                    return Err(InterpreterError::BoundsError {
+                        index: index_val,
+                        size: arr.borrow().len(),
+                    });
                 }
-                
+
                 // thing at the index we are assigning to
                 let inner_value = arr.borrow_mut().remove(index_val);
 
@@ -323,14 +343,15 @@ fn assign_drilldown(
         }
         AssignableKind::StructureField { field } => {
             if let Value::Structure(structure) = assign_to {
-
                 // either assign to substruct
                 let inner_value = match structure.borrow_mut().remove(&field) {
                     Some(f) => f,
                     // or create the new struct
                     None => Value::from(HashMap::new()),
                 };
-                structure.borrow_mut().insert(field, assign_drilldown(inner_value, assignments, rhs, env)?);
+                structure
+                    .borrow_mut()
+                    .insert(field, assign_drilldown(inner_value, assignments, rhs, env)?);
 
                 return Ok(Value::Structure(structure));
             }
