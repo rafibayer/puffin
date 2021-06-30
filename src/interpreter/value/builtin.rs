@@ -36,6 +36,7 @@ impl PartialEq for Builtin {
 }
 
 pub fn get_builtins() -> HashMap<String, Value> {
+    // List of builtin functions and constants
     let builtins = vec![
         ("PI", Value::from(std::f64::consts::PI)),
         ("true", Value::from(1f64)),
@@ -174,6 +175,25 @@ pub fn get_builtins() -> HashMap<String, Value> {
         .collect()
 }
 
+/// converts `a` into a string
+///
+/// `args`: 
+///
+///     a: Any
+///
+/// `returns`: String
+fn builtin_str(v: Vec<Value>) -> Result<Value, InterpreterError> {
+    let arg = get_one(v)?;
+    Ok(Value::String(arg.to_string()))
+}
+
+/// Returns the length of a string, array, or structure
+///
+/// `args`: 
+///
+///     a: String | Array | Structure
+///
+/// `returns`: Num
 fn builtin_len(v: Vec<Value>) -> Result<Value, InterpreterError> {
     let arg = get_one(v)?;
     match arg {
@@ -184,16 +204,35 @@ fn builtin_len(v: Vec<Value>) -> Result<Value, InterpreterError> {
     }
 }
 
+/// prints args
+///
+/// `args`: 
+///
+///     ...: Any
+///
+/// `returns`: Null
 fn builtin_print(v: Vec<Value>) -> Result<Value, InterpreterError> {
     output(v, |e| print!("{} ", e));
     Ok(Value::Null)
 }
 
+/// `args`: 
+///
+///     ...: Any
+///
+/// `returns`: Null
 fn builtin_println(v: Vec<Value>) -> Result<Value, InterpreterError> {
     output(v, |e| println!("{}", e));
     Ok(Value::Null)
 }
 
+/// printlns `args` to stderr, and returns an InterpreterError
+/// 
+/// `args`: 
+///
+///     ...: Any
+///
+/// `returns`: InterpreterError
 fn builtin_error(v: Vec<Value>) -> Result<Value, InterpreterError> {
     output(v, |e| eprintln!("ERR: {} ", e));
     Err(InterpreterError::Error)
@@ -209,6 +248,13 @@ where
         .join(" "));
 }
 
+/// Used to create builtins:
+///
+///     `args`: 
+/// 
+///         a: Num
+/// 
+///     `returns`: Num
 #[inline]
 fn builtin_floatops<F>(v: Vec<Value>, f: F) -> Result<Value, InterpreterError>
 where
@@ -224,6 +270,13 @@ enum InputType {
     Num,
 }
 
+/// Used to create builtins:
+///
+///     `args`: 
+/// 
+///         ...: Any
+/// 
+///     `returns`: Num | String
 fn builtin_input(v: Vec<Value>, input_type: InputType) -> Result<Value, InterpreterError> {
     // print any args as a prompt
     builtin_print(v)?;
@@ -240,6 +293,7 @@ fn builtin_input(v: Vec<Value>, input_type: InputType) -> Result<Value, Interpre
             let parsed: f64 = if let Ok(n) = buf.parse() {
                 n
             } else {
+                
                 return Err(InterpreterError::IOError(
                     "Failed to parse number".to_string(),
                 ));
@@ -250,6 +304,14 @@ fn builtin_input(v: Vec<Value>, input_type: InputType) -> Result<Value, Interpre
     })
 } 
 
+/// Push `b` onto array `a`
+///
+/// `args`: 
+///
+///     a: Array
+///     b: Any
+///
+/// `returns`: Null
 fn builtin_push(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
     expect_args(2, &v)?;
 
@@ -259,6 +321,13 @@ fn builtin_push(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
     Ok(Value::Array(array))
 }
 
+/// Pop from array `a`
+///
+/// `args`: 
+///
+///     a: Array
+///
+/// `returns`: Any
 fn builtin_pop(v: Vec<Value>) -> Result<Value, InterpreterError> {
     let array: Rc<RefCell<Vec<Value>>> = get_one(v)?.try_into()?;
     if array.borrow().len() == 0 {
@@ -268,6 +337,14 @@ fn builtin_pop(v: Vec<Value>) -> Result<Value, InterpreterError> {
     Ok(removed)
 }
 
+/// Remove from array `a` at index `i`
+///
+/// `args`: 
+///
+///     a: Array
+///     i: Num
+///
+/// `returns`: Any
 fn builtin_remove(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
     expect_args(2, &v)?;
 
@@ -282,6 +359,15 @@ fn builtin_remove(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
     Ok(removed)
 }
 
+/// inserts element `v` at index `i` in array `a`
+///
+/// `args`: 
+///
+///     a: Array
+///     i: Num
+///     v: Any
+///
+/// `returns`: Null
 fn builtin_insert(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
     expect_args(3, &v)?;
 
@@ -302,20 +388,19 @@ fn builtin_insert(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
 }
 
 
+/// Return a random number in [0, 1)
+/// 
+/// `returns`: Num
 fn builtin_rand(v: Vec<Value>) -> Result<Value, InterpreterError> {
     expect_args(0, &v)?;
     Ok(Value::Num(rand::random()))
 }
 
-fn builtin_str(v: Vec<Value>) -> Result<Value, InterpreterError> {
-    let arg = get_one(v)?;
-    Ok(Value::String(arg.to_string()))
-}
-
+/// Gets exactly 1 argument from v
 #[inline]
 fn get_one(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
     expect_args(1, &v)?;
-    Ok(v.remove(0))
+    Ok(v.pop().unwrap())
 }
 
 #[inline]

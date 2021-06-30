@@ -18,7 +18,10 @@ statement = {
 }
 
 return_statment = { "return" ~ exp }
+
+// assigment, can be augmented by certain operators
 assign_statment = { exp ~ aug? ~ "=" ~ exp }
+    // assigment augmentation operators
     aug = {
         "+" |
         "-" |
@@ -46,11 +49,13 @@ unary = _{ un_op? ~ (postfix | paren) }
 postfix = _{ (value | paren) ~ post_op? }
 value = { paren | structure | function | num | string | array_init | null | name }
 
+// logical operators
 log_op = {
     "||" |
     "&&"
 }
 
+// comparison operators
 comp_op = {
     "<=" |
     "<" |
@@ -60,45 +65,59 @@ comp_op = {
     "!=" 
 }
 
+// sum operators
 sum_op = {
     "-" |
     "+" 
 }
 
+// multiplicative operators
 mul_op = {
     "/" |
     "%" |
     "*" 
 }
 
+// unary (prefix) operators
 un_op = {
     "!" |
     "-"
 }
 
+// postfix operators
 post_op = {
     subscript |
     call |
     dot
 }
+    // array subscripting
     subscript = { "[" ~ exp ~ "]" }
+    // function call
     call = { "(" ~ exps ~ ")" }
+    // structure access
     dot = { "." ~ name }
 
 
 // numerical literal
 num = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 
+// structures are composed of fields
 structure = { "{" ~ fields* ~ "}"}
-fields = _{ field ~ "," ~ fields | field }
-field = { name ~ ":" ~ exp }
+    fields = _{ field ~ "," ~ fields | field }
+    // each field is a name, followed by its value
+    field = { name ~ ":" ~ exp }
 
+// strings are any collection of characters between double-quotes
 string = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
-null = { "null" }
 
+// array initialization
 array_init = { "[" ~ (range_init | sized_init ) ~ "]" }
+    // array 
     range_init = { exp ~ ":" ~ exp  }
     sized_init = { exp }
+
+null = { "null" }
+
 
 block = { "{" ~ statement* ~ "}"}
 
@@ -133,7 +152,9 @@ nest = {
     }
 
         while_block = { ("while" ~ exp ~ block) }
+        // for-in/foreach
         for_in_block = { "for" ~ "(" ~ name ~ "in" ~ exp ~ ")" ~ block }
+        // traditional C-style for-loop
         for_block = { ("for" ~ "(" ~ statement ~ exp ~ ";" ~ (assign_statment | exp) ~ ")" ~ block) }
 
 
