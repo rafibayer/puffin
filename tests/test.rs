@@ -6,7 +6,7 @@ mod test {
     use super::common::*;
     use std::collections::HashMap;
 
-    // test programs that return literals
+    // test programs that return values
     #[test]
     fn test_value() {
         let tests = vec![
@@ -132,6 +132,37 @@ mod test {
                 return rev("hello, world!");
                 "#,
                 Value::String("!dlrow ,olleh".to_string())
+            ),
+            (
+                r#"
+                is_palidrome = fn(s) {
+    
+                    for (i = 0; i < round((len(s) / 2) - 0.5); i += 1) {
+                        if (s[i] != s[len(s) - i - 1]) {
+                            return false;
+                        }
+                    }
+                
+                    return true;
+                
+                    
+                };
+                
+                strings = [0];
+                push(strings, "1");
+                push(strings, "12");
+                push(strings, "121");
+                push(strings, "122");
+                push(strings, "1221");
+                push(strings, "1222");
+                
+                for (i = 0; i < len(strings); i += 1) {
+                    strings[i] = is_palidrome(strings[i]);
+                }
+                
+                return strings;
+                "#,
+                Value::from([1, 0, 1, 0, 1, 0].iter().map(|e| Value::from(*e as f64)).collect::<Vec<Value>>())
             )
         ];
 
