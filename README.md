@@ -134,10 +134,8 @@ while (i < 10) {
 - `input_str(...)`, `input_num(...)`: prints args as prompt, parses next line from stdin as string or number.
 - `push(a, b)`: pushes `b` onto the array `a`
 - `pop(a)`: pops the last element `b`, off `a`, returning `b`
-- `remove(a, i)`: removes the element, `b`, at index `i` in array `a`, returning `b`
+- `remove(a, i)`: removes and returns the element at index `i` in array `a`
 - `insert(a, i, v)`: inserts element `v` into array `a` at index `i`
-- `pop(a)`: pops the last element `b`, off `a`, returning `b`
-
 - `rand()`: returns a uniformly distributed random number between 0 and 1
 
 
