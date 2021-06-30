@@ -104,5 +104,5 @@ pub fn unary(op: String) -> Result<TermKind, ASTError> {
 // not cached as name could be any variable name, not just limited subset
 // of operators like other lookups
 pub fn is_keyword(name: &str) -> bool {
-    matches!(name, "fn" | "if" | "else" | "return" | "for" | "while" | "null")
+    matches!(name, "fn" | "in" | "if" | "else" | "return" | "for" | "while" | "null")
 }

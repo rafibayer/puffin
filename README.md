@@ -121,7 +121,7 @@ while (i < 10) {
 
 ## Builtins
 `Puffin` currently supports the following builtin functions and constants, although more may be added soon. Builtins cannot be rebound (although they can be used as structure field names):
-- `PI`: approximately π
+- `PI`: approximately `π`
 - `true`: 1
 - `false`: 0
 - `EPSILON`: Rust `std::f64::EPSILON`
@@ -134,6 +134,10 @@ while (i < 10) {
 - `input_str(...)`, `input_num(...)`: prints args as prompt, parses next line from stdin as string or number.
 - `push(a, b)`: pushes `b` onto the array `a`
 - `pop(a)`: pops the last element `b`, off `a`, returning `b`
+- `remove(a, i)`: removes the element, `b`, at index `i` in array `a`, returning `b`
+- `insert(a, i, v)`: inserts element `v` into array `a` at index `i`
+- `pop(a)`: pops the last element `b`, off `a`, returning `b`
+
 - `rand()`: returns a uniformly distributed random number between 0 and 1
 
 
@@ -163,10 +167,7 @@ Example: `$ puffin program.puf`
 
 ## Planned Features
 - Array Resizing (automatic? via builtin?)
-- Array Literals
 - Hash-table (and literals?)
-- String indexing
-- More builtins
 - Runtime/AST error line numbers
 - Imports/multi-file programs? standard library?
 

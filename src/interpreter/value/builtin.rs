@@ -147,6 +147,20 @@ pub fn get_builtins() -> HashMap<String, Value> {
             }),
         ),
         (
+            "remove",
+            Value::Builtin(Builtin{
+                name: "remove",
+                body: builtin_remove,
+            })
+        ),
+        (
+            "insert",
+            Value::Builtin(Builtin{
+                name: "insert",
+                body: builtin_insert,
+            })
+        ),
+        (
             "rand",
             Value::Builtin(Builtin {
                 name: "rand",
@@ -253,6 +267,40 @@ fn builtin_pop(v: Vec<Value>) -> Result<Value, InterpreterError> {
     let removed = array.borrow_mut().pop().unwrap();
     Ok(removed)
 }
+
+fn builtin_remove(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
+    expect_args(2, &v)?;
+
+    let index_float: f64 = v.pop().unwrap().try_into()?;
+    let index = index_float as usize;
+    let array: Rc<RefCell<Vec<Value>>> = v.pop().unwrap().try_into()?;
+    if index >= array.borrow().len()  {
+        return Err(InterpreterError::BoundsError { index, size: array.borrow().len() })
+    }
+
+    let removed = array.borrow_mut().remove(index);
+    Ok(removed)
+}
+
+fn builtin_insert(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
+    expect_args(3, &v)?;
+
+    let value = v.pop().unwrap();
+
+    let index_float: f64 = v.pop().unwrap().try_into()?;
+    let index = index_float as usize;
+
+    let array: Rc<RefCell<Vec<Value>>> = v.pop().unwrap().try_into()?;
+
+    if index > array.borrow().len() {
+        return Err(InterpreterError::BoundsError { index, size: array.borrow().len() })
+    }
+
+    array.borrow_mut().insert(index, value);
+
+    Ok(Value::Null)
+}
+
 
 fn builtin_rand(v: Vec<Value>) -> Result<Value, InterpreterError> {
     expect_args(0, &v)?;
