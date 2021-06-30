@@ -163,6 +163,30 @@ mod test {
                 return strings;
                 "#,
                 Value::from([1, 0, 1, 0, 1, 0].iter().map(|e| Value::from(*e as f64)).collect::<Vec<Value>>())
+            ),
+            (
+                r#"
+                vec = [1:25];
+                prod = 1;
+                for (i = 0; i < len(vec); i += 1) {
+                    prod *= vec[i];
+                }
+
+                return prod;
+                "#,
+                Value::Num((1_u128..25_u128).fold(1, |a, b| a * b) as f64)
+            ),
+            (
+                r#"
+                vec = [1:23];
+                prod = 1;
+                for (i in vec) {
+                    prod *= i;
+                }
+
+                return prod;
+                "#,
+                Value::Num((1_u128..23_u128).fold(1, |a, b| a * b) as f64)
             )
         ];
 

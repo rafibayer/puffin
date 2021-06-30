@@ -217,7 +217,20 @@ fn build_loopnest(loopnest: Pair<Rule>) -> Result<LoopNestKind, ASTError> {
             let block = build_block(while_parts.remove(0))?;
 
             Ok(LoopNestKind::While { cond, block })
-        }
+        },
+        Rule::for_in_block => {
+            let mut for_parts = get_inner(inner);
+            expect_children(3, &for_parts)?;
+            let name = build_name(for_parts.remove(0))?;
+            let array = build_exp(for_parts.remove(0))?;
+            let block = build_block(for_parts.remove(0))?;
+
+            Ok(LoopNestKind::ForIn{
+                name,
+                array,
+                block,
+            })
+        },
         Rule::for_block => {
             let mut for_parts = get_inner(inner);
             expect_children(4, &for_parts)?;
@@ -303,7 +316,7 @@ fn build_value(next: Pair<Rule>) -> Result<ValueKind, ASTError> {
         Rule::function => build_function(child)?,
         Rule::num => ValueKind::Num(build_num(child)?),
         Rule::string => build_string(child)?,
-        Rule::array_init => ValueKind::ArrayInit(Box::new(build_exp(get_one(child)?)?)),
+        Rule::array_init => build_array_init(child)?,
         Rule::name => ValueKind::Name(build_name(child)?),
         Rule::null => ValueKind::Null,
         _ => return Err(unexpected_token(child)),
@@ -395,6 +408,24 @@ fn build_string(string: Pair<Rule>) -> Result<ValueKind, ASTError> {
         }
         _ => Err(unexpected_token(string)),
     }
+}
+
+fn build_array_init(array_init: Pair<Rule>) -> Result<ValueKind, ASTError> {
+    let inner = get_one(array_init)?;
+
+    Ok(ValueKind::ArrayInit(match inner.as_rule() {
+        Rule::sized_init => {
+            ArrayInitKind::Sized(Box::new(build_exp(get_one(inner)?)?))
+            
+        },
+        Rule::range_init => {
+            let mut init_inner = get_inner(inner);
+            let from = build_exp(init_inner.remove(0))?;
+            let to = build_exp(init_inner.remove(0))?;
+            ArrayInitKind::Range(Box::new(from), Box::new(to))
+        },
+        _ => return Err(unexpected_token(inner))
+    }))
 }
 
 /// `rule: postfix`

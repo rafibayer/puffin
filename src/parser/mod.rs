@@ -135,7 +135,7 @@ mod test {
     }
 
     #[test]
-    fn test_array_init() {
+    fn test_sized_array_init() {
         let tests = vec![
             r"[5]",
             r"[5 + 5]",
@@ -144,6 +144,24 @@ mod test {
             r"[call(5 + 5)]",
             r"[call(5, 5, 5)]",
             r"[call(5, a, arr[5])]",
+        ];
+
+        for test in tests {
+            let pairs = PuffinParser::parse(Rule::array_init, test).unwrap();
+            let last = pairs.last().unwrap();
+            assert_eq!(last.as_span().end(), test.len(), "{}", test);
+        }
+    }
+
+    #[test]
+    fn test_range_array_init() {
+        let tests = vec![
+            r"[1:5]",
+            r"[5 + 5:5+5+5]",
+            r"[0:call()]",
+            r"[call(5):0]",
+            r"[call(5):call(5 + 5)]",
+            r"[call(5, 5, 5):1]",
         ];
 
         for test in tests {

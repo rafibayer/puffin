@@ -62,9 +62,15 @@ pub enum ValueKind {
     FunctionDef { args: Vec<String>, block: Block },
     Num(f64),
     String(String),
-    ArrayInit(Box<Exp>),
+    ArrayInit(ArrayInitKind),
     Name(String),
     Null,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ArrayInitKind {
+    Sized(Box<Exp>),
+    Range(Box<Exp>, Box<Exp>)
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -109,6 +115,11 @@ pub enum LoopNestKind {
     While {
         cond: Exp,
         block: Block,
+    },
+    ForIn {
+        name: String,
+        array: Exp,
+        block: Block
     },
     // todo: adv could be an expression too?
     For {

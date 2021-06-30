@@ -74,8 +74,9 @@ println(user.contact);
 ```
 
 ## Arrays
-`puffin` Arrays are fixed sized data-structures, `puffin` allows arrays to have mixed types (this includes other arrays). See the [Builtins](##Builtins) section for more ways to manipulate arrays. Array indices have the initial value of null. 
+`puffin` allows arrays to have mixed types (this includes other arrays). See the [Builtins](##Builtins) section for more ways to manipulate arrays. Array indices have the initial value of null. 
 
+Sized Initialization:
 ```rs
 // create a new array of size 5
 arr = [5];
@@ -90,6 +91,34 @@ arr[len(arr)-1] = "Another type!";
 println(arr);
 // output: [1, 2, 3, 4, Another type!] 
 ```
+
+Range Initialization:
+```rs
+arr = [0:10];
+print(arr);
+// output: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] 
+```
+
+## Loops
+```rs
+// standard for loop
+for (i = 0; i < 10; i += 1) {
+    println(i);
+}
+
+// for-in loop
+for (i in [0:10]) {
+    println(i);
+}
+
+// while-loop
+i = 0;
+while (i < 10) {
+    println(i);
+    i += 1;
+}
+```
+
 ## Builtins
 `Puffin` currently supports the following builtin functions and constants, although more may be added soon. Builtins cannot be rebound (although they can be used as structure field names):
 - `PI`: approximately π

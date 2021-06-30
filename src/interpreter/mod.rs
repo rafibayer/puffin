@@ -20,6 +20,7 @@ pub enum InterpreterError {
     UnexepectedOperator(String),
     IOError(String),
     BoundsError { index: usize, size: usize },
+    RangeError { from: i128, to: i128 },
     Error,
 }
 
@@ -234,11 +235,27 @@ fn eval_value(value: ValueKind, env: &mut Environment) -> Result<Value, Interpre
         }
         ValueKind::Num(n) => Ok(Value::Num(n)),
         ValueKind::String(string) => Ok(Value::String(string)),
-        ValueKind::ArrayInit(size_exp) => {
-            let size_float: f64 = eval_exp(*size_exp, env)?.try_into()?;
-            let size = size_float as usize;
-            Ok(Value::Array(Rc::new(RefCell::new(vec![Value::Null; size]))))
-        }
+        ValueKind::ArrayInit(init_exp) => match init_exp {
+            ArrayInitKind::Sized(size_exp) => {
+                let size_float: f64 = eval_exp(*size_exp, env)?.try_into()?;
+                let size = size_float as usize;
+                Ok(Value::Array(Rc::new(RefCell::new(vec![Value::Null; size]))))
+            }
+            ArrayInitKind::Range(from_exp, to_exp) => {
+                let from_float: f64 = eval_exp(*from_exp, env)?.try_into()?;
+                let from = from_float as i128;
+
+                let to_float: f64 = eval_exp(*to_exp, env)?.try_into()?;
+                let to = to_float as i128;
+
+                if from > to {
+                    return Err(InterpreterError::RangeError { from, to });
+                }
+
+                let vec: Vec<Value> = (from..to).map(|e| Value::from(e as f64)).collect();
+                Ok(Value::Array(Rc::new(RefCell::new(vec))))
+            }
+        },
         ValueKind::Name(name) => env.get(name),
         ValueKind::Null => Ok(Value::Null),
     }
@@ -410,6 +427,23 @@ fn eval_nest(nest: NestKind, env: &mut Environment) -> Result<Option<Value>, Int
                     }
                     eval_statement(*adv.clone(), env)?;
                     for_cond = eval_exp(cond.clone(), env)?.try_into()?;
+                }
+                Ok(None)
+            }
+            LoopNestKind::ForIn { name, array, block } => {
+                let array = eval_exp(array, env)?;
+                let vector = match array {
+                    Value::Array(v) => v,
+                    other => return Err(unexpected_type(other))
+                };
+
+                let mut index: usize = 0;
+                while index < vector.borrow().len() {
+                    env.bind(name.clone(), vector.borrow()[index].clone())?;
+                    if let Some(return_result) = eval_block(block.clone(), env)? {
+                        return Ok(Some(return_result));
+                    }
+                    index += 1;
                 }
                 Ok(None)
             }

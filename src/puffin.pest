@@ -85,6 +85,7 @@ post_op = {
     call = { "(" ~ exps ~ ")" }
     dot = { "." ~ name }
 
+
 // numerical literal
 num = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 
@@ -95,7 +96,9 @@ field = { name ~ ":" ~ exp }
 string = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 null = { "null" }
 
-array_init = { "[" ~ exp ~ "]" }
+array_init = { "[" ~ (range_init | sized_init ) ~ "]" }
+    range_init = { exp ~ ":" ~ exp  }
+    sized_init = { exp }
 
 block = { "{" ~ statement* ~ "}"}
 
@@ -125,10 +128,12 @@ nest = {
     // loops: while or for-loop
     loopnest = {
         while_block |
+        for_in_block |
         for_block
     }
 
         while_block = { ("while" ~ exp ~ block) }
+        for_in_block = { "for" ~ "(" ~ name ~ "in" ~ exp ~ ")" ~ block }
         for_block = { ("for" ~ "(" ~ statement ~ exp ~ ";" ~ (assign_statment | exp) ~ ")" ~ block) }
 
 
