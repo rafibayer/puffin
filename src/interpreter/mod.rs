@@ -146,10 +146,12 @@ fn eval_exp(exp: &Exp, env: &Rc<RefCell<Environment>>) -> Result<Value, Interpre
                                         });
                                     }
 
+                                    let subenv = Rc::new(RefCell::new(Environment::new_sub(&environment)));
+
                                     // bind the args to the actuals
                                     for i in 0..args.len() {
                                         let actual = eval_exp(&exps[i], env)?;
-                                        environment.borrow_mut().bind(
+                                        subenv.borrow_mut().bind(
                                             args[i].clone(),
                                             actual,
                                         )?;
@@ -159,12 +161,12 @@ fn eval_exp(exp: &Exp, env: &Rc<RefCell<Environment>>) -> Result<Value, Interpre
                                     // bind that name to the function itself within its closure.
                                     // allows for recursion.
                                     if let Some(self_name) = self_name {
-                                        environment.borrow_mut().bind(self_name.clone(), next)?;
+                                        subenv.borrow_mut().bind(self_name.clone(), next)?;
                                     }
 
                                     // evaluate the closures body.
                                     // if the block evaluates to none, the implicit result is null
-                                    let result = eval_block(&block, &environment)?
+                                    let result = eval_block(&block, &subenv)?
                                         .unwrap_or(Value::Null);
                                     stack.push(result);
                                 }
@@ -234,7 +236,7 @@ fn eval_value(value: &ValueKind, env: &Rc<RefCell<Environment>>) -> Result<Value
 
                 // has the effect of snapshotting the environment, rather than capturing it
                 // this is a problem because 1) it wastes tons of time/mem, and 2) changes in closure are not reflected outside and vice versa
-                environment: Rc::new(RefCell::new(Environment::new_sub(env))), 
+                environment: env.clone(), 
             })
         }
         ValueKind::Num(n) => Ok(Value::Num(*n)),

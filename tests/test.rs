@@ -4,7 +4,7 @@ pub(crate) mod common;
 mod test {
 
     use super::common::*;
-    use std::{cell::RefCell, collections::HashMap, rc::Rc};
+    use std::collections::HashMap;
 
     // test programs that return values
     #[test]
@@ -153,6 +153,21 @@ mod test {
                 return prod;
                 "#,
                 Value::Num((1_u128..23_u128).fold(1, |a, b| a * b) as f64)
+            ),
+            (
+                r#"
+                fib = fn(n) {
+                    if (n == 0 || n == 1) {
+                        return n;
+                    }
+                
+                
+                    return fib(n-1) + fib(n-2);
+                };
+                
+                return fib(15);
+                "#,
+                Value::from(610f64)
             )
         ];
 
