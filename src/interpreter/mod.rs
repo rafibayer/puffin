@@ -11,6 +11,8 @@ mod operations;
 mod shunting_yard;
 pub mod value;
 
+const EXP_STACK_START_CAPACITY: usize = 4;
+
 #[derive(Debug, Clone)]
 pub enum InterpreterError {
     UnboundName(String),
@@ -68,11 +70,12 @@ fn eval_exp(exp: &Exp, env: &Rc<RefCell<Environment>>) -> Result<Value, Interpre
     let mut rpn_queue = shunting_yard::to_rpn_queue(exp);
 
     // we then evaluate the postfix expression using a stack
-    let mut stack: Vec<Value> = Vec::new();
+    let mut stack: Vec<Value> = Vec::with_capacity(EXP_STACK_START_CAPACITY);
 
     // evaluate rpn
     while !rpn_queue.is_empty() {
-        let top = rpn_queue.remove(0).unwrap();
+        
+        let top = rpn_queue.pop_front().unwrap();
         match top {
             // evaluate operators
             TermKind::Operator(op, _, _) => match op {
@@ -130,7 +133,7 @@ fn eval_exp(exp: &Exp, env: &Rc<RefCell<Environment>>) -> Result<Value, Interpre
                             }
                         }
                         PostOp::Call(exps) => {
-                            match next.clone() {
+                            match &next {
                                 // function/closure call
                                 Value::Closure {
                                     self_name,
@@ -161,7 +164,7 @@ fn eval_exp(exp: &Exp, env: &Rc<RefCell<Environment>>) -> Result<Value, Interpre
                                     // bind that name to the function itself within its closure.
                                     // allows for recursion.
                                     if let Some(self_name) = self_name {
-                                        subenv.borrow_mut().bind(self_name.clone(), next)?;
+                                        subenv.borrow_mut().bind(self_name.clone(), next.clone())?;
                                     }
 
                                     // evaluate the closures body.
@@ -227,7 +230,7 @@ fn eval_value(value: &ValueKind, env: &Rc<RefCell<Environment>>) -> Result<Value
         }
         ValueKind::FunctionDef { args, block } => {
             // functions evaluate to a closure that captures the local environment.
-            // by default, closures don't have their own name.
+            // by default, closures are anonymous (self_name = None).
             // self_name is set later by eval_assign if we are binding this closure to a name.
             Ok(Value::Closure {
                 self_name: None,
@@ -240,7 +243,7 @@ fn eval_value(value: &ValueKind, env: &Rc<RefCell<Environment>>) -> Result<Value
         ValueKind::String(string) => Ok(Value::String(string.clone())),
         ValueKind::ArrayInit(init_exp) => match init_exp {
             ArrayInitKind::Sized(size_exp) => {
-                let size_float: f64 = eval_exp(&*size_exp, env)?.try_into()?;
+                let size_float: f64 = eval_exp(size_exp, env)?.try_into()?;
                 let size = size_float as usize;
                 Ok(Value::Array(Rc::new(RefCell::new(vec![Value::Null; size]))))
             }
