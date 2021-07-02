@@ -7,16 +7,16 @@ use super::*;
 // converts an expression (a list of terms) into reverse polish notation
 // according to associativity and operator precedence.
 // example: 1 + 2 * 3 => 1 2 3 * +
-pub fn to_rpn_queue(exp: Exp) -> VecDeque<TermKind> {
+pub fn to_rpn_queue<'i>(exp: &'i Exp) -> VecDeque<&'i TermKind> {
     
-    let mut op_stack: Vec<TermKind> = Vec::new();
-    let mut out_queue: VecDeque<TermKind> = VecDeque::new();
+    let mut op_stack: Vec<&TermKind> = Vec::new();
+    let mut out_queue: VecDeque<&'i TermKind> = VecDeque::new();
 
     // while there are tokens to be read:
-    for term in exp.exp {
+    for term in &exp.exp {
         //  if the token is:
-        match &term {
-            // a number: put it into the output queue
+        match term {
+            // a value: put it into the output queue
             TermKind::Value(_) => out_queue.push_back(term),
             // an operator o1:
             TermKind::Operator (_, assoc, prec )=> {

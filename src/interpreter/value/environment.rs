@@ -32,10 +32,10 @@ impl Environment {
         Ok(Value::Null)
     }
 
-    pub fn get(&self, name: String) -> Result<Value, InterpreterError> {
-        match self.bindings.get(&name) {
+    pub fn get(&self, name: &str) -> Result<Value, InterpreterError> {
+        match self.bindings.get(name) {
             Some(value) => Ok(value.clone()),
-            None => Err(InterpreterError::UnboundName(name)),
+            None => Err(InterpreterError::UnboundName(name.to_string())),
         }
     }
 }

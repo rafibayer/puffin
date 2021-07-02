@@ -31,7 +31,7 @@ pub fn eval(program: Program) -> Result<Value, InterpreterError> {
 
 /// evaluates a program under a given environment
 fn eval_env(program: Program, env: &mut Environment) -> Result<Value, InterpreterError> {
-    for statement in program.program {
+    for statement in &program.program {
         // if a statement has a value, it was a return statement,
         // we stop executing the program and return the value
         if let Some(return_val) = eval_statement(statement, env)? {
@@ -45,13 +45,13 @@ fn eval_env(program: Program, env: &mut Environment) -> Result<Value, Interprete
 }
 
 fn eval_statement(
-    statement: Statement,
+    statement: &Statement,
     env: &mut Environment,
 ) -> Result<Option<Value>, InterpreterError> {
-    match statement.statement {
+    match &statement.statement {
         StatementKind::Return(exp) => return Ok(Some(eval_exp(exp, env)?)),
         StatementKind::Assign { lhs, rhs } => eval_assign(lhs, rhs, env),
-        StatementKind::Exp(exp) => eval_exp(exp, env),
+        StatementKind::Exp(exp) => eval_exp(&exp, env),
         StatementKind::Nest(nest) => match eval_nest(nest, env)? {
             // if a nest statement has a value, it had a return statement,
             // we propagate this to the caller so they can return (or program).
@@ -63,7 +63,7 @@ fn eval_statement(
     Ok(None)
 }
 
-fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> {
+fn eval_exp(exp: &Exp, env: &mut Environment) -> Result<Value, InterpreterError> {
     // use the shunting yard algorithm to convert the expression to postfix notation
     let mut rpn_queue = shunting_yard::to_rpn_queue(exp);
 
@@ -103,7 +103,7 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                     let next = stack.pop().unwrap();
                     match postop {
                         PostOp::Subscript(exp) => {
-                            let index: f64 = eval_exp(*exp, env)?.try_into()?;
+                            let index: f64 = eval_exp(exp, env)?.try_into()?;
                             let index = index as usize;
                             match next {
                                 Value::Array(arr) => {
@@ -150,7 +150,7 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                                     for i in 0..args.len() {
                                         environment.bind(
                                             args[i].clone(),
-                                            eval_exp(exps[i].clone(), env)?,
+                                            eval_exp(&exps[i].clone(), env)?,
                                         )?;
                                     }
 
@@ -163,7 +163,7 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
 
                                     // evaluate the closures body.
                                     // if the block evaluates to none, the implicit result is null
-                                    let result = eval_block(block.clone(), &mut environment)?
+                                    let result = eval_block(&block, &mut environment)?
                                         .unwrap_or(Value::Null);
                                     stack.push(result);
                                 }
@@ -172,7 +172,7 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                                     let mut actuals = Vec::with_capacity(exps.len());
                                     // evaluate the actuals
                                     for actual in exps {
-                                        actuals.push(eval_exp(actual, env)?);
+                                        actuals.push(eval_exp(&actual, env)?);
                                     }
 
                                     // call the builtin function body with the actuals.
@@ -188,9 +188,9 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
                         }
                         PostOp::Dot(name) => match next {
                             Value::Structure(map) => {
-                                let result = match map.borrow().get(&name) {
+                                let result = match map.borrow().get(name) {
                                     Some(value) => value.clone(),
-                                    None => return Err(InterpreterError::UnboundName(name)),
+                                    None => return Err(InterpreterError::UnboundName(name.clone())),
                                 };
 
                                 stack.push(result);
@@ -212,13 +212,13 @@ fn eval_exp(exp: Exp, env: &mut Environment) -> Result<Value, InterpreterError> 
     Ok(stack.pop().unwrap())
 }
 
-fn eval_value(value: ValueKind, env: &mut Environment) -> Result<Value, InterpreterError> {
+fn eval_value(value: &ValueKind, env: &mut Environment) -> Result<Value, InterpreterError> {
     match value {
-        ValueKind::Paren(exp) => eval_exp(*exp, env),
+        ValueKind::Paren(exp) => eval_exp(exp, env),
         ValueKind::Structure(fields) => {
             let mut map = HashMap::with_capacity(fields.len());
             for field in fields {
-                map.insert(field.name, eval_exp(field.exp, env)?);
+                map.insert(field.name.clone(), eval_exp(&field.exp, env)?);
             }
             Ok(Value::from(map))
         }
@@ -228,24 +228,24 @@ fn eval_value(value: ValueKind, env: &mut Environment) -> Result<Value, Interpre
             // self_name is set later by eval_assign if we are binding this closure to a name.
             Ok(Value::Closure {
                 self_name: None,
-                args,
-                block,
+                args: args.clone(),
+                block: block.clone(),
                 environment: env.clone(),
             })
         }
-        ValueKind::Num(n) => Ok(Value::Num(n)),
-        ValueKind::String(string) => Ok(Value::String(string)),
+        ValueKind::Num(n) => Ok(Value::Num(*n)),
+        ValueKind::String(string) => Ok(Value::String(string.clone())),
         ValueKind::ArrayInit(init_exp) => match init_exp {
             ArrayInitKind::Sized(size_exp) => {
-                let size_float: f64 = eval_exp(*size_exp, env)?.try_into()?;
+                let size_float: f64 = eval_exp(&*size_exp, env)?.try_into()?;
                 let size = size_float as usize;
                 Ok(Value::Array(Rc::new(RefCell::new(vec![Value::Null; size]))))
             }
             ArrayInitKind::Range(from_exp, to_exp) => {
-                let from_float: f64 = eval_exp(*from_exp, env)?.try_into()?;
+                let from_float: f64 = eval_exp(from_exp, env)?.try_into()?;
                 let from = from_float as i128;
 
-                let to_float: f64 = eval_exp(*to_exp, env)?.try_into()?;
+                let to_float: f64 = eval_exp(to_exp, env)?.try_into()?;
                 let to = to_float as i128;
 
                 if from > to {
@@ -261,8 +261,8 @@ fn eval_value(value: ValueKind, env: &mut Environment) -> Result<Value, Interpre
     }
 }
 
-fn eval_block(block: Block, env: &mut Environment) -> Result<Option<Value>, InterpreterError> {
-    for statement in block.block {
+fn eval_block(block: &Block, env: &mut Environment) -> Result<Option<Value>, InterpreterError> {
+    for statement in &block.block {
         // propagate return statements
         if let Some(return_value) = eval_statement(statement, env)? {
             return Ok(Some(return_value));
@@ -273,17 +273,17 @@ fn eval_block(block: Block, env: &mut Environment) -> Result<Option<Value>, Inte
 }
 
 fn eval_assign(
-    lhs: Assingnable,
-    rhs: Exp,
+    lhs: &Assingnable,
+    rhs: &Exp,
     env: &mut Environment,
 ) -> Result<Value, InterpreterError> {
-    let name = lhs.name;
-    let subassignment = lhs.assignable;
+    let name = lhs.name.clone();
+    let subassignment = &lhs.assignable;
 
     // simple assignment to name (a = something),
     // no subassignment (like a[5], or a.b)
     if subassignment.is_empty() {
-        let value = eval_exp(rhs, env)?;
+        let value = eval_exp(&rhs, env)?;
 
         // if we are binding a function, give it it's name
         if let Value::Closure {
@@ -306,8 +306,8 @@ fn eval_assign(
     }
 
     // otherwise we need to recursively assign to arrays/structures
-    let mut bound = env.get(name.clone())?;
-    let rhs = eval_exp(rhs, env)?;
+    let mut bound = env.get(&name)?;
+    let rhs = eval_exp(&rhs, env)?;
 
     bound = assign_drilldown(bound, subassignment, rhs, env)?;
 
@@ -320,7 +320,7 @@ fn eval_assign(
 // rhs is the final value being bound
 fn assign_drilldown(
     assign_to: Value,
-    mut assignments: Vec<AssignableKind>,
+    assignments: &[AssignableKind],
     rhs: Value,
     env: &mut Environment,
 ) -> Result<Value, InterpreterError> {
@@ -330,12 +330,12 @@ fn assign_drilldown(
     }
 
     // next thing we are assigning to, either an array index or a structure field
-    let next = assignments.remove(0);
+    let next = &assignments[0];
     match next {
         AssignableKind::ArrayIndex { index } => {
             if let Value::Array(arr) = assign_to {
                 // compute the index to assign to
-                let index_val: f64 = eval_exp(index, env)?.try_into()?;
+                let index_val: f64 = eval_exp(&index, env)?.try_into()?;
                 let index_val = index_val as usize;
 
                 if index_val >= arr.borrow().len() {
@@ -351,7 +351,7 @@ fn assign_drilldown(
                 // re-insert after assinging to the inner value
                 arr.borrow_mut().insert(
                     index_val,
-                    assign_drilldown(inner_value, assignments, rhs, env)?,
+                    assign_drilldown(inner_value, &assignments[1..], rhs, env)?,
                 );
 
                 return Ok(Value::Array(arr));
@@ -361,14 +361,14 @@ fn assign_drilldown(
         AssignableKind::StructureField { field } => {
             if let Value::Structure(structure) = assign_to {
                 // either assign to substruct
-                let inner_value = match structure.borrow_mut().remove(&field) {
+                let inner_value = match structure.borrow_mut().remove(field) {
                     Some(f) => f,
                     // or create the new struct
                     None => Value::from(HashMap::new()),
                 };
                 structure
                     .borrow_mut()
-                    .insert(field, assign_drilldown(inner_value, assignments, rhs, env)?);
+                    .insert(field.clone(), assign_drilldown(inner_value, &assignments[1..], rhs, env)?);
 
                 return Ok(Value::Structure(structure));
             }
@@ -377,7 +377,7 @@ fn assign_drilldown(
     }
 }
 
-fn eval_nest(nest: NestKind, env: &mut Environment) -> Result<Option<Value>, InterpreterError> {
+fn eval_nest(nest: &NestKind, env: &mut Environment) -> Result<Option<Value>, InterpreterError> {
     match nest {
         NestKind::CondNest(condnest) => match condnest {
             CondNestKind::IfElse {
@@ -385,7 +385,7 @@ fn eval_nest(nest: NestKind, env: &mut Environment) -> Result<Option<Value>, Int
                 then,
                 or_else,
             } => {
-                let cond_value: f64 = eval_exp(cond, env)?.try_into()?;
+                let cond_value: f64 = eval_exp(&cond, env)?.try_into()?;
                 if cond_value as i64 != 0 {
                     let then_res = eval_block(then, env)?;
                     return Ok(then_res);
@@ -394,7 +394,7 @@ fn eval_nest(nest: NestKind, env: &mut Environment) -> Result<Option<Value>, Int
                 Ok(or_else_res)
             }
             CondNestKind::If { cond, then } => {
-                let cond_value: f64 = eval_exp(cond, env)?.try_into()?;
+                let cond_value: f64 = eval_exp(&cond, env)?.try_into()?;
                 if cond_value as i64 != 0 {
                     let then_res = eval_block(then, env)?;
                     return Ok(then_res);
@@ -404,12 +404,12 @@ fn eval_nest(nest: NestKind, env: &mut Environment) -> Result<Option<Value>, Int
         },
         NestKind::LoopNest(loopnest) => match loopnest {
             LoopNestKind::While { cond, block } => {
-                let mut while_cond: f64 = eval_exp(cond.clone(), env)?.try_into()?;
+                let mut while_cond: f64 = eval_exp(&cond, env)?.try_into()?;
                 while while_cond as i64 != 0 {
-                    if let Some(return_result) = eval_block(block.clone(), env)? {
+                    if let Some(return_result) = eval_block(block, env)? {
                         return Ok(Some(return_result));
                     }
-                    while_cond = eval_exp(cond.clone(), env)?.try_into()?;
+                    while_cond = eval_exp(&cond, env)?.try_into()?;
                 }
                 Ok(None)
             }
@@ -419,19 +419,19 @@ fn eval_nest(nest: NestKind, env: &mut Environment) -> Result<Option<Value>, Int
                 adv,
                 block,
             } => {
-                eval_statement(*init, env)?;
-                let mut for_cond: f64 = eval_exp(cond.clone(), env)?.try_into()?;
+                eval_statement(init, env)?;
+                let mut for_cond: f64 = eval_exp(&cond, env)?.try_into()?;
                 while for_cond as i64 != 0 {
-                    if let Some(return_result) = eval_block(block.clone(), env)? {
+                    if let Some(return_result) = eval_block(block, env)? {
                         return Ok(Some(return_result));
                     }
-                    eval_statement(*adv.clone(), env)?;
-                    for_cond = eval_exp(cond.clone(), env)?.try_into()?;
+                    eval_statement(adv, env)?;
+                    for_cond = eval_exp(&cond, env)?.try_into()?;
                 }
                 Ok(None)
             }
             LoopNestKind::ForIn { name, array, block } => {
-                let array = eval_exp(array, env)?;
+                let array = eval_exp(&array, env)?;
                 let vector = match array {
                     Value::Array(v) => v,
                     other => return Err(unexpected_type(other))
@@ -440,7 +440,7 @@ fn eval_nest(nest: NestKind, env: &mut Environment) -> Result<Option<Value>, Int
                 let mut index: usize = 0;
                 while index < vector.borrow().len() {
                     env.bind(name.clone(), vector.borrow()[index].clone())?;
-                    if let Some(return_result) = eval_block(block.clone(), env)? {
+                    if let Some(return_result) = eval_block(block, env)? {
                         return Ok(Some(return_result));
                     }
                     index += 1;

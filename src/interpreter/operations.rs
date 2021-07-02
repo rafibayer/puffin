@@ -1,7 +1,7 @@
 use super::*;
 
 
-pub fn infix(op: InfixOp, lhs: Value, rhs: Value) -> Result<Value, InterpreterError> {
+pub fn infix(op: &InfixOp, lhs: Value, rhs: Value) -> Result<Value, InterpreterError> {
     Ok(match op {
         InfixOp::Mul => {
             let lhs_float: f64 = lhs.try_into()?;
@@ -63,7 +63,7 @@ pub fn infix(op: InfixOp, lhs: Value, rhs: Value) -> Result<Value, InterpreterEr
             Value::Num((lhs == rhs) as u32 as f64)
         },
         InfixOp::Ne => {
-            if let Value::Num(bool) = infix(InfixOp::Eq, lhs, rhs)? {
+            if let Value::Num(bool) = infix(&InfixOp::Eq, lhs, rhs)? {
                 return Ok(Value::Num((bool == 0f64) as u32 as f64));
             }
             unreachable!();
