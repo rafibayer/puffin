@@ -233,9 +233,6 @@ fn eval_value(value: &ValueKind, env: &Rc<RefCell<Environment>>) -> Result<Value
                 self_name: None,
                 args: args.clone(),
                 block: block.clone(),
-
-                // has the effect of snapshotting the environment, rather than capturing it
-                // this is a problem because 1) it wastes tons of time/mem, and 2) changes in closure are not reflected outside and vice versa
                 environment: env.clone(), 
             })
         }
