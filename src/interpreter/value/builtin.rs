@@ -120,6 +120,13 @@ pub fn get_builtins() -> HashMap<String, Value> {
             }),
         ),
         (
+            "pow",
+            Value::Builtin(Builtin {
+                name: "pow",
+                body: builtin_pow
+            })
+        ),
+        (
             "input_str",
             Value::Builtin(Builtin {
                 name: "input_str",
@@ -229,6 +236,14 @@ where
     let arg = get_one(v)?;
     let float: f64 = arg.try_into()?;
     Ok(Value::from(f(float)))
+}
+
+fn builtin_pow(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
+    expect_args(2, &v)?;
+    let exp: f64 = v.pop().unwrap().try_into()?;
+    let base: f64 = v.pop().unwrap().try_into()?;
+
+    Ok(Value::from(base.powf(exp)))
 }
 
 enum InputType {

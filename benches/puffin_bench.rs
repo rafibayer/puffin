@@ -52,5 +52,54 @@ pub fn fact_1_150_iterative(c: &mut Criterion) {
     }));
 }
 
-criterion_group!(benches, fib_15_recursive, fact_1_150_iterative);
+pub fn first_500_primes(c: &mut Criterion) {
+    let program =
+    r"
+    // 6k +- 1 primality test
+    is_prime = fn(n) {
+        if (n <= 3) {
+            return n > 1;
+        }
+
+        if (n % 2 == 0 || n % 3 == 0) {
+            return 0;
+        }
+
+        i = 5;
+        while (pow(i, 2) <= n) {
+            if (n % i == 0 || n % (i + 2) == 0) {
+                return 0;
+            }
+
+            i += 6;
+        }
+        return 1;
+    };
+
+    N_PRIMES = 500;
+    res = [N_PRIMES];
+    idx = 0;
+
+    n = 0;
+    while (idx < N_PRIMES) {
+        if (is_prime(n)) {
+            res[idx] = n;
+            idx += 1;
+        }
+
+        n += 1;
+    }
+
+    return res;
+    ";
+    let mut parsed = PuffinParser::parse(puffin::Rule::program, &program).unwrap();
+    let prog_ast = ast::build_program(parsed.next().unwrap()).unwrap();
+
+    c.bench_function("first 500 primes", |b| b.iter(|| {
+        interpreter::eval(black_box(prog_ast.clone()))
+    }));
+
+}
+
+criterion_group!(benches, fib_15_recursive, fact_1_150_iterative, first_500_primes);
 criterion_main!(benches);
