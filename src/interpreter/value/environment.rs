@@ -38,12 +38,4 @@ impl Environment {
             None => Err(InterpreterError::UnboundName(name)),
         }
     }
-
-    pub fn dbg(&self) {
-        for (k, v) in self.bindings.iter() {
-            if !self.builtins.contains(k) {
-                println!("{:#?}: {:#?}", k, v);
-            }
-        }
-    }
 }
