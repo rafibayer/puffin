@@ -25,7 +25,7 @@ pub enum Value {
         self_name: Option<String>,
         args: Vec<String>,
         block: Block,
-        environment: Environment,
+        environment: Rc<RefCell<Environment>>,
     },
     Builtin(Builtin),
 }

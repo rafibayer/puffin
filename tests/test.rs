@@ -4,7 +4,7 @@ pub(crate) mod common;
 mod test {
 
     use super::common::*;
-    use std::collections::HashMap;
+    use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
     // test programs that return values
     #[test]
@@ -26,40 +26,6 @@ mod test {
                         .into_iter()
                         .collect::<HashMap<String, Value>>(),
                 ),
-            ),
-            (
-                r#"return fn(){};"#,
-                Value::Closure {
-                    self_name: None,
-                    args: Vec::new(),
-                    block: Block { block: Vec::new() },
-                    environment: Environment::new(),
-                },
-            ),
-            (
-                r#"return fn(a, b){};"#,
-                Value::Closure {
-                    self_name: None,
-                    args: vec!["a", "b"].into_iter().map(str::to_string).collect(),
-                    block: Block { block: Vec::new() },
-                    environment: Environment::new(),
-                },
-            ),
-            (
-                r#"return fn(a) => a;"#,
-                Value::Closure {
-                    self_name: None,
-                    args: vec!["a".to_string()],
-                    block: Block {
-                        block: vec![Statement {
-                            statement: StatementKind::Return(Exp {
-                                exp: vec![TermKind::Value(ValueKind::Name("a".to_string()))],
-                                line: 1,
-                            }),
-                        }],
-                    },
-                    environment: Environment::new(),
-                },
             ),
             (r#"return (1 + 1);"#, Value::Num(2f64)),
             (

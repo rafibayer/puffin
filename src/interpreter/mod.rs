@@ -26,11 +26,11 @@ pub enum InterpreterError {
 
 /// evaluates a program AST. Entrypoint of the interpreter
 pub fn eval(program: Program) -> Result<Value, InterpreterError> {
-    eval_env(program, &mut Environment::new())
+    eval_env(program, &Rc::new(RefCell::new(Environment::new())))
 }
 
 /// evaluates a program under a given environment
-fn eval_env(program: Program, env: &mut Environment) -> Result<Value, InterpreterError> {
+fn eval_env(program: Program, env: &Rc<RefCell<Environment>>) -> Result<Value, InterpreterError> {
     for statement in &program.program {
         // if a statement has a value, it was a return statement,
         // we stop executing the program and return the value
@@ -46,7 +46,7 @@ fn eval_env(program: Program, env: &mut Environment) -> Result<Value, Interprete
 
 fn eval_statement(
     statement: &Statement,
-    env: &mut Environment,
+    env: &Rc<RefCell<Environment>>,
 ) -> Result<Option<Value>, InterpreterError> {
     match &statement.statement {
         StatementKind::Return(exp) => return Ok(Some(eval_exp(exp, env)?)),
@@ -63,7 +63,7 @@ fn eval_statement(
     Ok(None)
 }
 
-fn eval_exp(exp: &Exp, env: &mut Environment) -> Result<Value, InterpreterError> {
+fn eval_exp(exp: &Exp, env: &Rc<RefCell<Environment>>) -> Result<Value, InterpreterError> {
     // use the shunting yard algorithm to convert the expression to postfix notation
     let mut rpn_queue = shunting_yard::to_rpn_queue(exp);
 
@@ -136,7 +136,7 @@ fn eval_exp(exp: &Exp, env: &mut Environment) -> Result<Value, InterpreterError>
                                     self_name,
                                     args,
                                     block,
-                                    mut environment,
+                                    environment,
                                 } => {
                                     // ensure the call has the appropriate number of args for the function
                                     if exps.len() != args.len() {
@@ -148,9 +148,10 @@ fn eval_exp(exp: &Exp, env: &mut Environment) -> Result<Value, InterpreterError>
 
                                     // bind the args to the actuals
                                     for i in 0..args.len() {
-                                        environment.bind(
+                                        let actual = eval_exp(&exps[i], env)?;
+                                        environment.borrow_mut().bind(
                                             args[i].clone(),
-                                            eval_exp(&exps[i].clone(), env)?,
+                                            actual,
                                         )?;
                                     }
 
@@ -158,12 +159,12 @@ fn eval_exp(exp: &Exp, env: &mut Environment) -> Result<Value, InterpreterError>
                                     // bind that name to the function itself within its closure.
                                     // allows for recursion.
                                     if let Some(self_name) = self_name {
-                                        environment.bind(self_name.clone(), next)?;
+                                        environment.borrow_mut().bind(self_name.clone(), next)?;
                                     }
 
                                     // evaluate the closures body.
                                     // if the block evaluates to none, the implicit result is null
-                                    let result = eval_block(&block, &mut environment)?
+                                    let result = eval_block(&block, &environment)?
                                         .unwrap_or(Value::Null);
                                     stack.push(result);
                                 }
@@ -212,7 +213,7 @@ fn eval_exp(exp: &Exp, env: &mut Environment) -> Result<Value, InterpreterError>
     Ok(stack.pop().unwrap())
 }
 
-fn eval_value(value: &ValueKind, env: &mut Environment) -> Result<Value, InterpreterError> {
+fn eval_value(value: &ValueKind, env: &Rc<RefCell<Environment>>) -> Result<Value, InterpreterError> {
     match value {
         ValueKind::Paren(exp) => eval_exp(exp, env),
         ValueKind::Structure(fields) => {
@@ -230,7 +231,10 @@ fn eval_value(value: &ValueKind, env: &mut Environment) -> Result<Value, Interpr
                 self_name: None,
                 args: args.clone(),
                 block: block.clone(),
-                environment: env.clone(),
+
+                // has the effect of snapshotting the environment, rather than capturing it
+                // this is a problem because 1) it wastes tons of time/mem, and 2) changes in closure are not reflected outside and vice versa
+                environment: Rc::new(RefCell::new(Environment::new_sub(env))), 
             })
         }
         ValueKind::Num(n) => Ok(Value::Num(*n)),
@@ -256,12 +260,12 @@ fn eval_value(value: &ValueKind, env: &mut Environment) -> Result<Value, Interpr
                 Ok(Value::Array(Rc::new(RefCell::new(vec))))
             }
         },
-        ValueKind::Name(name) => env.get(name),
+        ValueKind::Name(name) => env.borrow().get(name),
         ValueKind::Null => Ok(Value::Null),
     }
 }
 
-fn eval_block(block: &Block, env: &mut Environment) -> Result<Option<Value>, InterpreterError> {
+fn eval_block(block: &Block, env: &Rc<RefCell<Environment>>) -> Result<Option<Value>, InterpreterError> {
     for statement in &block.block {
         // propagate return statements
         if let Some(return_value) = eval_statement(statement, env)? {
@@ -275,7 +279,7 @@ fn eval_block(block: &Block, env: &mut Environment) -> Result<Option<Value>, Int
 fn eval_assign(
     lhs: &Assingnable,
     rhs: &Exp,
-    env: &mut Environment,
+    env: &Rc<RefCell<Environment>>,
 ) -> Result<Value, InterpreterError> {
     let name = lhs.name.clone();
     let subassignment = &lhs.assignable;
@@ -299,19 +303,19 @@ fn eval_assign(
                 block,
                 environment,
             };
-            return env.bind(name, func_bind);
+            return env.borrow_mut().bind(name, func_bind);
         }
 
-        return env.bind(name, value);
+        return env.borrow_mut().bind(name, value);
     }
 
     // otherwise we need to recursively assign to arrays/structures
-    let mut bound = env.get(&name)?;
+    let mut bound = env.borrow().get(&name)?;
     let rhs = eval_exp(&rhs, env)?;
 
     bound = assign_drilldown(bound, subassignment, rhs, env)?;
 
-    env.bind(name, bound)
+    env.borrow_mut().bind(name, bound)
 }
 
 // recursive assignment for nested structures.
@@ -322,7 +326,7 @@ fn assign_drilldown(
     assign_to: Value,
     assignments: &[AssignableKind],
     rhs: Value,
-    env: &mut Environment,
+    env: &Rc<RefCell<Environment>>,
 ) -> Result<Value, InterpreterError> {
     // base case, we have reached the last assignable, and we return the final value back
     if assignments.is_empty() {
@@ -377,7 +381,7 @@ fn assign_drilldown(
     }
 }
 
-fn eval_nest(nest: &NestKind, env: &mut Environment) -> Result<Option<Value>, InterpreterError> {
+fn eval_nest(nest: &NestKind, env: &Rc<RefCell<Environment>>) -> Result<Option<Value>, InterpreterError> {
     match nest {
         NestKind::CondNest(condnest) => match condnest {
             CondNestKind::IfElse {
@@ -439,7 +443,7 @@ fn eval_nest(nest: &NestKind, env: &mut Environment) -> Result<Option<Value>, In
 
                 let mut index: usize = 0;
                 while index < vector.borrow().len() {
-                    env.bind(name.clone(), vector.borrow()[index].clone())?;
+                    env.borrow_mut().bind(name.clone(), vector.borrow()[index].clone())?;
                     if let Some(return_result) = eval_block(block, env)? {
                         return Ok(Some(return_result));
                     }
