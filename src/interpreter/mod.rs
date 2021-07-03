@@ -10,6 +10,7 @@ pub use value::Value;
 mod operations;
 mod shunting_yard;
 pub mod value;
+pub mod repl;
 
 const EXP_STACK_START_CAPACITY: usize = 4;
 
@@ -44,6 +45,26 @@ fn eval_env(program: Program, env: &Rc<RefCell<Environment>>) -> Result<Value, I
     // if the program terminates without encountering a return in the body,
     // the program implicitly returns null
     Ok(Value::Null)
+}
+
+/// exactly the same as normal `eval_statement`, except we propagate expression values
+/// as well as returns
+fn eval_repl_statement(
+    statement: &Statement,
+    env: &Rc<RefCell<Environment>>,
+) -> Result<Option<Value>, InterpreterError> {
+    match &statement.statement {
+        StatementKind::Return(exp) => return Ok(Some(eval_exp(exp, env)?)),
+        StatementKind::Assign { lhs, rhs } => eval_assign(lhs, rhs, env),
+        // repl version also returns expression values
+        StatementKind::Exp(exp) => return Ok(Some(eval_exp(&exp, env)?)),
+        StatementKind::Nest(nest) => match eval_nest(nest, env)? {
+            Some(return_value) => return Ok(Some(return_value)),
+            None => return Ok(None),
+        },
+    }?;
+
+    Ok(None)
 }
 
 fn eval_statement(
@@ -292,13 +313,7 @@ fn eval_assign(
         let value = eval_exp(&rhs, env)?;
 
         // if we are binding a function, give it it's name
-        if let Value::Closure {
-            args,
-            block,
-            environment,
-            ..
-        } = value
-        {
+        if let Value::Closure { args,block, environment, ..} = value {
             let func_bind = Value::Closure {
                 self_name: Some(name.clone()),
                 args,

@@ -38,7 +38,7 @@ impl Display for Value {
         match self {
             Value::Null => write!(f, "null"),
             Value::Num(n) => write!(f, "{}", n),
-            Value::String(s) => write!(f, "{}", s),
+            Value::String(s) => write!(f, "\'{}\'", s),
             Value::Array(v) => {
                 write!(f, "{}", stringify_array(v, &mut HashSet::new()))
             }

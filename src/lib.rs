@@ -29,6 +29,7 @@ extern crate cached;
 pub mod parser;
 pub mod ast;
 pub mod interpreter;
+pub mod repl;
 use std::{fs, process};
 
 use interpreter::value::Value;

@@ -155,14 +155,19 @@ while (i < 10) {
 `Puffin` Also supports other standard features such as standard arithmetic, comparison, and logical operators. There is no boolean type, all numbers are evaluated as `true` unless they are `0`.
 
 ## Usage
+### Running Source
 To execute a source file, just pass it to the `puffin` cli.  
 
 Example: `$ puffin program.puf`  
 
 `puffin` also supports the following optional cli flags:
 - `-parse`: Show the program parse tree before execution
-
 - `-ast`: Show the program AST before execution
+
+### REPL
+To start the REPl, just run `puffin` with no arguments.
+
+Example: `$ puffin`
 
 ## Planned Features
 - Array Resizing (automatic? via builtin?)

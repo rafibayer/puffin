@@ -53,7 +53,7 @@ pub fn build_program(program: Pair<Rule>) -> Result<Program, ASTError> {
 
 // builds a statement
 /// `Rule: Statement`
-fn build_statement(statement: Pair<Rule>) -> Result<Statement, ASTError> {
+pub fn build_statement(statement: Pair<Rule>) -> Result<Statement, ASTError> {
     let child = get_one(statement)?;
 
     match child.as_rule() {
