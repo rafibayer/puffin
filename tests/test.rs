@@ -65,7 +65,7 @@ mod test {
             ),
             (
                 r#"return "hello, " + "world!";"#,
-                Value::String("hello, world!".to_string())
+                Value::String("hello, world!".to_string()),
             ),
             (
                 r#"
@@ -82,7 +82,7 @@ mod test {
                 
                 return len(s1) + len(a1) + len(st);
                 "#,
-                Value::from(15f64)
+                Value::from(15f64),
             ),
             (
                 r#"
@@ -97,7 +97,7 @@ mod test {
                 
                 return rev("hello, world!");
                 "#,
-                Value::String("!dlrow ,olleh".to_string())
+                Value::String("!dlrow ,olleh".to_string()),
             ),
             (
                 r#"
@@ -110,8 +110,6 @@ mod test {
                     }
                 
                     return true;
-                
-                    
                 };
                 
                 strings = [0];
@@ -128,7 +126,12 @@ mod test {
                 
                 return strings;
                 "#,
-                Value::from([1, 0, 1, 0, 1, 0].iter().map(|e| Value::from(*e as f64)).collect::<Vec<Value>>())
+                Value::from(
+                    [1, 0, 1, 0, 1, 0]
+                        .iter()
+                        .map(|e| Value::from(*e as f64))
+                        .collect::<Vec<Value>>(),
+                ),
             ),
             (
                 r#"
@@ -140,7 +143,7 @@ mod test {
 
                 return prod;
                 "#,
-                Value::Num((1_u128..25_u128).fold(1, |a, b| a * b) as f64)
+                Value::Num((1_u128..25_u128).fold(1, |a, b| a * b) as f64),
             ),
             (
                 r#"
@@ -152,7 +155,7 @@ mod test {
 
                 return prod;
                 "#,
-                Value::Num((1_u128..23_u128).fold(1, |a, b| a * b) as f64)
+                Value::Num((1_u128..23_u128).fold(1, |a, b| a * b) as f64),
             ),
             (
                 r#"
@@ -167,7 +170,7 @@ mod test {
                 
                 return fib(15);
                 "#,
-                Value::from(610f64)
+                Value::from(610f64),
             ),
             (
                 r#"
@@ -189,7 +192,12 @@ mod test {
                 
                 return out;
                 "#,
-                Value::from([3, 2, 1].iter().map(|e| Value::from(*e as f64)).collect::<Vec<Value>>())
+                Value::from(
+                    [3, 2, 1]
+                        .iter()
+                        .map(|e| Value::from(*e as f64))
+                        .collect::<Vec<Value>>(),
+                ),
             ),
             (
                 r#"
@@ -215,7 +223,7 @@ mod test {
                     error("failed 2");
                 }
                 "#,
-                Value::Null
+                Value::Null,
             ),
             (
                 r#"
@@ -232,8 +240,26 @@ mod test {
                 o_ = o();
                 return o_.g();
                 "#,
-                Value::Num(3f64)
-            )
+                Value::Num(3f64),
+            ),
+            (
+                r#"
+                fact_solver = fn() => {
+                    f: fn(self, n) {
+                        if (n < 2) {
+                            return 1;
+                        }
+
+                        return n * self.f(n-1);
+                    }
+                };
+
+
+
+                return fact_solver().f(6);
+                "#,
+                Value::Num(720f64),
+            ),
         ];
 
         for (program, output) in tests {
