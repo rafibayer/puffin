@@ -79,5 +79,22 @@ pub fn infix(op: &InfixOp, lhs: Value, rhs: Value) -> Result<Value, InterpreterE
             Value::Num(((lhs_float.abs() > EPSILON) || (rhs_float.abs() > EPSILON)) as u32 as f64)
         },
     })
-
 }
+
+
+pub fn unary(unop: &Unop, value: Value) -> Result<Value, InterpreterError> {
+    Ok(match unop {
+        Unop::Not => {
+            let float: f64 = value.try_into()?;
+            let result = (float as i32 == 0) as i32 as f64;
+            Value::Num(result)
+        }
+        Unop::Neg => {
+            let result: f64 = -(value.try_into()?);
+            Value::Num(result)
+        }
+    })
+}
+
+// some postfix operations are more complicated and require environment,
+// these operations are left in mod.rs and are handled by eval_postfix()

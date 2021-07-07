@@ -86,6 +86,121 @@ fn eval_statement(
     Ok(None)
 }
 
+fn eval_subscript(index_exp: &Exp, value: Value, env: &Rc<RefCell<Environment>>) -> Result<Value, InterpreterError> {
+    let index_float: f64 = eval_exp(index_exp, env)?.try_into()?;
+    let index = index_float as usize;
+    Ok(match value {
+        // Array subscript
+        Value::Array(arr) => {
+            if index >= arr.borrow().len() {
+                return Err(InterpreterError::BoundsError {
+                    index,
+                    size: arr.borrow().len(),
+                });
+            }
+            arr.borrow()[index].clone()
+        }
+        // String subscript
+        Value::String(string) => {
+            if index >= string.len() {
+                return Err(InterpreterError::BoundsError {
+                    index,
+                    size: string.len(),
+                });
+            }
+            Value::from(
+                (string.as_bytes()[index] as char).to_string(),
+            )
+        }
+        _ => return Err(unexpected_type(value)),
+    })
+}
+
+fn eval_call(callable: Value, exps: &[Exp], env: &Rc<RefCell<Environment>>) -> Result<Value, InterpreterError> {
+    Ok(match &callable {
+        // function/closure call
+        Value::Closure {
+            self_name,
+            args,
+            block,
+            environment,
+        } => {
+            // ensure the call has the appropriate number of args for the function
+            if exps.len() != args.len() {
+                return Err(InterpreterError::ArgMismatch {
+                    expected: args.len(),
+                    got: exps.len(),
+                });
+            }
+
+            let subenv = Rc::new(RefCell::new(Environment::new_sub(&environment)));
+
+            // bind the args to the actuals
+            for i in 0..args.len() {
+                let actual = eval_exp(&exps[i], env)?;
+                subenv.borrow_mut().bind(
+                    args[i].clone(),
+                    actual,
+                )?;
+            }
+
+            // if the closure being called was bound to a name
+            // bind that name to the function itself within its closure.
+            // allows for recursion.
+            if let Some(self_name) = self_name {
+                subenv.borrow_mut().bind(self_name.clone(), callable.clone())?;
+            }
+
+            // evaluate the closures body.
+            // if the block evaluates to none, the implicit result is null
+            eval_block(&block, &subenv)?
+                .unwrap_or(Value::Null)
+        }
+        // builtin call
+        Value::Builtin(f) => {
+            let mut actuals = Vec::with_capacity(exps.len());
+            // evaluate the actuals
+            for actual in exps {
+                actuals.push(eval_exp(&actual, env)?);
+            }
+
+            // call the builtin function body with the actuals.
+            // the function body is responsible for validating number of args
+            // for builtins, which allows dynamic number of args for certain builtins
+            (f.body)(actuals)?
+        }
+        _ => {
+            return Err(unexpected_type(callable));
+        }
+    })
+}
+
+fn eval_dot(dotable: Value, name: &str) -> Result<Value, InterpreterError> {
+    Ok(match dotable {
+        Value::Structure(map) => {
+            match map.borrow().get(name) {
+                Some(value) => value.clone(),
+                None => return Err(InterpreterError::UnboundName(name.to_string())),
+            }
+        },
+        _ => return Err(unexpected_type(dotable))
+    })
+}
+
+fn eval_postfix(postop: &PostOp, value: Value, env: &Rc<RefCell<Environment>>) -> Result<Value, InterpreterError> {
+    Ok(match postop {
+        PostOp::Subscript(exp) => {
+            eval_subscript(exp, value, env)?
+        }
+        PostOp::Call(exps) => {
+            eval_call(value, exps, env)?
+        }
+        PostOp::Dot(name) => {
+            eval_dot(value, name)?
+        }
+    })
+}
+
 fn eval_exp(exp: &Exp, env: &Rc<RefCell<Environment>>) -> Result<Value, InterpreterError> {
     // use the shunting yard algorithm to convert the expression to postfix notation
     let mut rpn_queue = shunting_yard::to_rpn_queue(exp);
@@ -97,145 +212,38 @@ fn eval_exp(exp: &Exp, env: &Rc<RefCell<Environment>>) -> Result<Value, Interpre
     while !rpn_queue.is_empty() {
         
         let top = rpn_queue.pop_front().unwrap();
-        match top {
+        let result = match top {
             // evaluate operators
             TermKind::Operator(op, _, _) => match op {
                 // unary (prefix) operators
                 OperatorKind::Unary(unop) => {
-                    let next = stack.pop().unwrap();
-
-                    match unop {
-                        Unop::Not => {
-                            let float: f64 = next.try_into()?;
-                            let result = (float as i32 == 0) as i32 as f64;
-                            stack.push(Value::Num(result));
-                        }
-                        Unop::Neg => {
-                            let result: f64 = -(next.try_into()?);
-                            stack.push(Value::Num(result));
-                        }
-                    }
+                    let value = stack.pop().unwrap();
+                    operations::unary(unop, value)?
                 }
                 // infix operators
                 OperatorKind::Infix(infix) => {
                     let right = stack.pop().unwrap();
                     let left = stack.pop().unwrap();
-                    stack.push(operations::infix(infix, left, right)?);
+                    operations::infix(infix, left, right)?
                 }
                 // postfix operators
                 OperatorKind::Postfix(postop) => {
                     let next = stack.pop().unwrap();
-                    match postop {
-                        PostOp::Subscript(exp) => {
-                            let index: f64 = eval_exp(exp, env)?.try_into()?;
-                            let index = index as usize;
-                            match next {
-                                Value::Array(arr) => {
-                                    if index >= arr.borrow().len() {
-                                        return Err(InterpreterError::BoundsError {
-                                            index,
-                                            size: arr.borrow().len(),
-                                        });
-                                    }
-                                    stack.push(arr.borrow()[index].clone());
-                                }
-                                Value::String(string) => {
-                                    if index >= string.len() {
-                                        return Err(InterpreterError::BoundsError {
-                                            index,
-                                            size: string.len(),
-                                        });
-                                    }
-                                    stack.push(Value::from(
-                                        (string.as_bytes()[index] as char).to_string(),
-                                    ));
-                                }
-                                _ => return Err(unexpected_type(next)),
-                            }
-                        }
-                        PostOp::Call(exps) => {
-                            match &next {
-                                // function/closure call
-                                Value::Closure {
-                                    self_name,
-                                    args,
-                                    block,
-                                    environment,
-                                } => {
-                                    // ensure the call has the appropriate number of args for the function
-                                    if exps.len() != args.len() {
-                                        return Err(InterpreterError::ArgMismatch {
-                                            expected: args.len(),
-                                            got: exps.len(),
-                                        });
-                                    }
-
-                                    let subenv = Rc::new(RefCell::new(Environment::new_sub(&environment)));
-
-                                    // bind the args to the actuals
-                                    for i in 0..args.len() {
-                                        let actual = eval_exp(&exps[i], env)?;
-                                        subenv.borrow_mut().bind(
-                                            args[i].clone(),
-                                            actual,
-                                        )?;
-                                    }
-
-                                    // if the closure being called was bound to a name
-                                    // bind that name to the function itself within its closure.
-                                    // allows for recursion.
-                                    if let Some(self_name) = self_name {
-                                        subenv.borrow_mut().bind(self_name.clone(), next.clone())?;
-                                    }
-
-                                    // evaluate the closures body.
-                                    // if the block evaluates to none, the implicit result is null
-                                    let result = eval_block(&block, &subenv)?
-                                        .unwrap_or(Value::Null);
-                                    stack.push(result);
-                                }
-                                // builtin call
-                                Value::Builtin(f) => {
-                                    let mut actuals = Vec::with_capacity(exps.len());
-                                    // evaluate the actuals
-                                    for actual in exps {
-                                        actuals.push(eval_exp(&actual, env)?);
-                                    }
-
-                                    // call the builtin function body with the actuals.
-                                    // the function body is responsible for validating number of args
-                                    // for builtins, which allows dynamic number of args for certain builtins
-                                    let result = (f.body)(actuals)?;
-                                    stack.push(result);
-                                }
-                                _ => {
-                                    return Err(unexpected_type(next));
-                                }
-                            }
-                        }
-                        PostOp::Dot(name) => match next {
-                            Value::Structure(map) => {
-                                let result = match map.borrow().get(name) {
-                                    Some(value) => value.clone(),
-                                    None => return Err(InterpreterError::UnboundName(name.clone())),
-                                };
-
-                                stack.push(result);
-                            }
-                            _ => return Err(unexpected_type(next)),
-                        },
-                    }
+                    eval_postfix(postop, next, env)?
                 }
             },
             // values get evaluated and pushed onto the stack
             TermKind::Value(v) => {
-                stack.push(eval_value(v, env)?);
+                eval_value(v, env)?
             }
-        }
+        };
+
+        stack.push(result);
     }
 
     // after evaluating the expression, the final value on the stack is
     // the expressions result
+    assert_eq!(1, stack.len());
     Ok(stack.pop().unwrap())
 }
 
