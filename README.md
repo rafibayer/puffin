@@ -73,6 +73,33 @@ println(user.contact);
 // {github: github.com/rafibayer, linkedin: linkedin.com/in/rafael-bayer, email: rafibayer7@gmail.com} 
 ```
 
+Structures may also define "reciever" functions (think Golang) that implicitly take themselves as the first argument. This is done by making `self` the first argument to a function defined as a structure field. Here is an example structure that can be used to store odd and even numbers seperately. We use a lambda to act as a constructor so we could make many of these easily.
+
+```rs
+new_odd_even = fn() => {
+    evens: [0],
+    odds: [0],
+    add_num: fn(self, num) {
+        if (num % 2 == 0) {
+            push(self.evens, num);
+        } else {
+            push(self.odds, num);
+        }
+    }
+};
+
+odd_even = new_odd_even();
+
+for (n in [0:10]) {
+    odd_even.add_num(n);
+}
+
+println(odd_even);
+// output: {add_num: <(self) fn(num)>, odds: [1, 3, 5, 7, 9], evens: [0, 2, 4, 6, 8]}
+```
+
+
+
 ## Arrays
 `puffin` allows arrays to have mixed types (this includes other arrays). See the [Builtins](##Builtins) section for more ways to manipulate arrays. Array indices have the initial value of null. 
 

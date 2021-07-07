@@ -319,6 +319,7 @@ mod test {
             r#"(thing).inner_property"#,
             r#"result().inner_property"#,
             r#"{literal:"value"}.literal"#,
+            r#"println(struct.array[0] == null)"#,
         ];
 
         for test in tests {

@@ -7,6 +7,8 @@ use crate::ast::node::*;
 use value::Environment;
 pub use value::Value;
 
+use self::value::ClosureKind;
+
 mod operations;
 mod shunting_yard;
 pub mod value;
@@ -120,7 +122,7 @@ fn eval_call(callable: Value, exps: &[Exp], env: &Rc<RefCell<Environment>>) -> R
     Ok(match &callable {
         // function/closure call
         Value::Closure {
-            self_name,
+            kind,
             args,
             block,
             environment,
@@ -144,11 +146,12 @@ fn eval_call(callable: Value, exps: &[Exp], env: &Rc<RefCell<Environment>>) -> R
                 )?;
             }
 
-            // if the closure being called was bound to a name
-            // bind that name to the function itself within its closure.
-            // allows for recursion.
-            if let Some(self_name) = self_name {
-                subenv.borrow_mut().bind(self_name.clone(), callable.clone())?;
+            // if the function was named, bind its name to itself to allow recursion
+            if let ClosureKind::Named(name) = kind {
+                subenv.borrow_mut().bind(name.clone(), callable.clone())?;
+            // if the function was a reciever of a structure, bind the structure to "self"  
+            } else if let ClosureKind::Reciever(structure) = kind {
+                subenv.borrow_mut().bind("self".to_string(), Value::Structure(structure.clone()))?;
             }
 
             // evaluate the closures body.
@@ -251,18 +254,37 @@ fn eval_value(value: &ValueKind, env: &Rc<RefCell<Environment>>) -> Result<Value
     match value {
         ValueKind::Paren(exp) => eval_exp(exp, env),
         ValueKind::Structure(fields) => {
-            let mut map = HashMap::with_capacity(fields.len());
+            let map = Rc::new(RefCell::new(HashMap::with_capacity(fields.len())));
             for field in fields {
-                map.insert(field.name.clone(), eval_exp(&field.exp, env)?);
+                let mut field_value = eval_exp(&field.exp, env)?;
+
+                // if the fields value is a closure, check if the first argument is "self"
+                if let Value::Closure{args, block, environment , ..} = &field_value {
+                    // if it is, the closure is a reciever of the structure
+                    if args.first() == Some(&"self".to_string()) {
+                        // take out the "self" argument, leaving the remaining args
+                        let other_args: Vec<String> = args[1..].to_vec();
+                        field_value = Value::Closure{ 
+                            kind: ClosureKind::Reciever(map.clone()),
+                            args: other_args,
+                            block: block.clone(),
+                            environment: environment.clone() 
+                        }
+                    }
+                }
+
+                map.borrow_mut().insert(field.name.clone(), field_value);
             }
-            Ok(Value::from(map))
+
+            Ok(Value::Structure(map))
         }
         ValueKind::FunctionDef { args, block } => {
             // functions evaluate to a closure that captures the local environment.
             // by default, closures are anonymous (self_name = None).
-            // self_name is set later by eval_assign if we are binding this closure to a name.
+            // kind is changed later by eval_assign if we are binding this closure to a name,
+            // or by eval_value if we are binding to a structure field
             Ok(Value::Closure {
-                self_name: None,
+                kind: ClosureKind::Anonymous,
                 args: args.clone(),
                 block: block.clone(),
                 environment: env.clone(), 
@@ -320,10 +342,10 @@ fn eval_assign(
     if subassignment.is_empty() {
         let value = eval_exp(&rhs, env)?;
 
-        // if we are binding a function, give it it's name
+        // if we are binding a closure, convert to a named closure
         if let Value::Closure { args,block, environment, ..} = value {
             let func_bind = Value::Closure {
-                self_name: Some(name.clone()),
+                kind: ClosureKind::Named(name.clone()),
                 args,
                 block,
                 environment,
@@ -388,6 +410,7 @@ fn assign_drilldown(
             Err(unexpected_type(assign_to))
         }
         AssignableKind::StructureField { field } => {
+
             if let Value::Structure(structure) = assign_to {
                 // either assign to substruct
                 let inner_value = match structure.borrow_mut().remove(field) {
@@ -484,7 +507,7 @@ fn eval_nest(nest: &NestKind, env: &Rc<RefCell<Environment>>) -> Result<Option<V
 fn unexpected_type(value: Value) -> InterpreterError {
     //let caller = std::panic::Location::caller();
     //eprintln!("unexpected type: {:#?}, {}:{}", &value, caller.file(), caller.line());
-    InterpreterError::UnexpectedType(format!("{:?}", value))
+    InterpreterError::UnexpectedType(format!("{}", value))
 }
 
 impl Display for InterpreterError {

@@ -31,7 +31,6 @@ assign_statment = { exp ~ aug? ~ "=" ~ exp }
     }
 
 exp = {
-    comparison ~ post_op* |
     comparison |
     paren
 }
@@ -46,7 +45,7 @@ logical = _{ sum ~ (log_op ~ (sum | paren))*}
 sum = _{ product ~ (sum_op ~ (product | paren))* }
 product = _{ unary ~ (mul_op ~ (unary | paren))* }
 unary = _{ un_op? ~ (postfix | paren) }
-postfix = _{ (value | paren) ~ post_op? }
+postfix = _{ (value | paren) ~ post_op* }
 value = { paren | structure | function | num | string | array_init | null | name }
 
 // logical operators

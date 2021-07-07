@@ -22,12 +22,20 @@ pub enum Value {
     Array(Rc<RefCell<Vec<Value>>>),
     Structure(Rc<RefCell<HashMap<String, Value>>>),
     Closure {
-        self_name: Option<String>,
+        kind: ClosureKind,
         args: Vec<String>,
         block: Block,
         environment: Rc<RefCell<Environment>>,
     },
     Builtin(Builtin),
+}
+
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ClosureKind {
+    Anonymous,
+    Reciever(Rc<RefCell<HashMap<String, Value>>>),
+    Named(String),
 }
 
 const CIRCULAR_REF: &str = "...";
@@ -46,11 +54,13 @@ impl Display for Value {
                 write!(f, "{}", stringify_struct(s, &mut HashSet::new()))
 
             }
-            Value::Closure { args, self_name, .. } => {
+            Value::Closure { args, kind, .. } => {
                 let argstr = args.join(", ");
-                if let Some(name) = self_name {
+                if let ClosureKind::Named(name) = &kind {
                     // named function
                     return write!(f, "<{} fn({})> ", name, argstr)
+                } else if let ClosureKind::Reciever(_) = &kind {
+                    return write!(f, "<(self) fn({})>", argstr)
                 }
                 // anonymous function/lambda 
                 write!(f, "<λ fn({})> ", argstr)

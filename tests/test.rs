@@ -168,6 +168,71 @@ mod test {
                 return fib(15);
                 "#,
                 Value::from(610f64)
+            ),
+            (
+                r#"
+                stack = fn() => {
+                    inner: [0],
+                    push: fn(self, e) => push(self.inner, e)
+                    pop: fn(self) => pop(self.inner)
+                };
+                
+                s = stack();
+                s.push(1);
+                s.push(2);
+                s.push(3);
+                
+                out = [0];
+                for (i in [0:3]) {
+                    push(out, s.pop());   
+                }
+                
+                return out;
+                "#,
+                Value::from([3, 2, 1].iter().map(|e| Value::from(*e as f64)).collect::<Vec<Value>>())
+            ),
+            (
+                r#"
+                stack = fn() => {
+                    inner: [0],
+                    push: fn(self, e) => push(self.inner, e)
+                    pop: fn(self) => pop(self.inner)
+                };
+                
+                two_stacks = {
+                    one: stack(),
+                    two: stack()
+                };
+                
+                
+                two_stacks.one.push(1);
+                two_stacks.two.push(2);
+                
+                if (two_stacks.one.pop() != 1) {
+                    error("failed 1");
+                }
+                if (two_stacks.two.pop() != 2) {
+                    error("failed 2");
+                }
+                "#,
+                Value::Null
+            ),
+            (
+                r#"
+                o = fn() => {
+                    i: {
+                        f: fn(self) => self.i1,
+                        i1: 2
+                    },
+                    o1: 1,
+                    g: fn(self) => self.o1 + self.i.f()
+
+                };
+
+                o_ = o();
+                return o_.g();
+                "#,
+                Value::Num(3f64)
             )
         ];
 
