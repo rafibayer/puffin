@@ -1,3 +1,6 @@
+//! Author: Rafael Bayer (2021)
+//! The builtin module defines builtin functions and values in Puffin
+
 use rand;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -8,6 +11,7 @@ use std::rc::Rc;
 use crate::interpreter::{unexpected_type, InterpreterError};
 use super::Value;
 
+/// Builtin wraps a name and a builtin function body
 pub struct Builtin {
     name: &'static str,
     pub body: fn(Vec<Value>) -> Result<Value, InterpreterError>,
@@ -35,6 +39,8 @@ impl PartialEq for Builtin {
     }
 }
 
+/// returns all puffin Builtins.
+/// Expensive, should only be called once for the global environment.
 pub fn get_builtins() -> HashMap<String, Value> {
     // List of builtin functions and constants
     let builtins = vec![
@@ -227,7 +233,7 @@ where
         .join(" "));
 }
 
-/// Used to create builtins:
+/// Used to create single argument math builtins:
 #[inline]
 fn builtin_floatops<F>(v: Vec<Value>, f: F) -> Result<Value, InterpreterError>
 where
@@ -348,6 +354,9 @@ fn get_one(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
     Ok(v.pop().unwrap())
 }
 
+
+/// Checks that v has exactly the expect number of elements, returning
+/// and InterpreterError otherwise
 #[inline]
 fn expect_args<T>(n: usize, v: &[T]) -> Result<(), InterpreterError> {
     if v.len() != n {
