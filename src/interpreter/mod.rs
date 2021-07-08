@@ -141,17 +141,17 @@ fn eval_call(callable: Value, exps: &[Exp], env: &Rc<RefCell<Environment>>) -> R
             for i in 0..args.len() {
                 let actual = eval_exp(&exps[i], env)?;
                 subenv.borrow_mut().bind(
-                    args[i].clone(),
+                    &args[i],
                     actual,
                 )?;
             }
 
             // if the function was named, bind its name to itself to allow recursion
             if let ClosureKind::Named(name) = kind {
-                subenv.borrow_mut().bind(name.clone(), callable.clone())?;
+                subenv.borrow_mut().bind(name, callable.clone())?;
             // if the function was a reciever of a structure, bind the structure to "self"  
             } else if let ClosureKind::Reciever(structure) = kind {
-                subenv.borrow_mut().bind("self".to_string(), Value::Structure(structure.clone()))?;
+                subenv.borrow_mut().bind("self", Value::Structure(structure.clone()))?;
             }
 
             // evaluate the closures body.
@@ -350,10 +350,10 @@ fn eval_assign(
                 block,
                 environment,
             };
-            return env.borrow_mut().bind(name, func_bind);
+            return env.borrow_mut().bind(&name, func_bind);
         }
 
-        return env.borrow_mut().bind(name, value);
+        return env.borrow_mut().bind(&name, value);
     }
 
     // otherwise we need to recursively assign to arrays/structures
@@ -362,7 +362,7 @@ fn eval_assign(
 
     bound = assign_drilldown(bound, subassignment, rhs, env)?;
 
-    env.borrow_mut().bind(name, bound)
+    env.borrow_mut().bind(&name, bound)
 }
 
 // recursive assignment for nested structures.
@@ -396,14 +396,14 @@ fn assign_drilldown(
                     });
                 }
 
-                // thing at the index we are assigning to
-                let inner_value = arr.borrow_mut().remove(index_val);
+                // temporarily replace the value at the index with null so we can modify it
+                // this is preferable to removing it, because replace is O(1) as it does not cause a shift
+                // in all the other elements which would be o(n)
+                let inner_value = std::mem::replace(&mut arr.borrow_mut()[index_val], Value::Null);
 
                 // re-insert after assinging to the inner value
-                arr.borrow_mut().insert(
-                    index_val,
-                    assign_drilldown(inner_value, &assignments[1..], rhs, env)?,
-                );
+                arr.borrow_mut()[index_val] = assign_drilldown(inner_value, &assignments[1..], rhs, env)?;
+            
 
                 return Ok(Value::Array(arr));
             }
@@ -412,12 +412,21 @@ fn assign_drilldown(
         AssignableKind::StructureField { field } => {
 
             if let Value::Structure(structure) = assign_to {
-                // either assign to substruct
+
+
+                // todo: this remove may trigger an expensive resize, any way to 
+                // do this via swapping like in the array case? potentially could also use
+                // get_mut
                 let inner_value = match structure.borrow_mut().remove(field) {
                     Some(f) => f,
                     // or create the new struct
                     None => Value::from(HashMap::new()),
                 };
+
+
+                
+                
+
                 structure
                     .borrow_mut()
                     .insert(field.clone(), assign_drilldown(inner_value, &assignments[1..], rhs, env)?);
@@ -491,7 +500,7 @@ fn eval_nest(nest: &NestKind, env: &Rc<RefCell<Environment>>) -> Result<Option<V
 
                 let mut index: usize = 0;
                 while index < vector.borrow().len() {
-                    env.borrow_mut().bind(name.clone(), vector.borrow()[index].clone())?;
+                    env.borrow_mut().bind(name, vector.borrow()[index].clone())?;
                     if let Some(return_result) = eval_block(block, env)? {
                         return Ok(Some(return_result));
                     }

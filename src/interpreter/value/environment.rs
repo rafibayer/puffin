@@ -34,11 +34,18 @@ impl Environment {
         }
     }
 
-    pub fn bind(&mut self, name: String, value: Value) -> Result<Value, InterpreterError> {
-        if self.builtins.contains(&name) {
-            return Err(InterpreterError::BuiltinRebinding(name));
+    pub fn bind(&mut self, name: &str, value: Value) -> Result<Value, InterpreterError> {
+        if self.builtins.contains(name) {
+            return Err(InterpreterError::BuiltinRebinding(name.to_string()));
         }
-        self.bindings.insert(name, value);
+
+        // bind or rebind
+        if let Some(val) = self.bindings.get_mut(name) {
+            *val = value
+        } else {
+            self.bindings.insert(name.to_string(), value);
+        }
+
         Ok(Value::Null)
     }
 
