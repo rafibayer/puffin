@@ -1,0 +1,31 @@
+// Author: Rafael Bayer (2021)
+// sample program showing a simple guessing game.
+// meant to demonstrate basic control flow and user input
+
+
+println("Welcome to the guessing game!");
+hi = round(input_num("High value: "));
+
+target = round(rand() * hi);
+
+
+println("I'm thinking of a number between", 0, "and", hi);
+
+attempts = 0;
+
+guess = input_num("Guess?");
+while (guess != target) {
+
+    if (guess < target) {
+        println("too low!");
+    } else {
+        println("too high!");
+    }
+    
+    attempts += 1;
+    guess = input_num("Guess?");
+
+}
+
+println("You got it! attempts taken: ");
+println(attempts);

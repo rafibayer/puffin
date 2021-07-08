@@ -1,0 +1,146 @@
+// Author: Rafael Bayer (2021)
+// sample program demonstrating a basic hashmap implementation in puffin.
+// makes use of structures and recievers, constructor functions, and more.
+//
+// note: in this file, a name ending with '_' (for example 'buckets_') is meant to denote
+// that the variable or function is 'private' and not meant to be called or used externally.
+// this is mearely a convention and not enforced by the language.
+
+// pair returns a structure representing a key-value pair
+// for a given key 'k' and value 'v'
+pair_ = fn(k, v) => {
+    k:k,
+    v:v
+};
+
+// hashmap returns a structure representing a hashmap.
+// the current implementation of hash only supports numerical keys.
+// values can be of any type.
+hashmap = fn() => {
+
+    // internal variable.
+    // storage buckets for self.
+    // initially 1 empty bucket.
+    buckets_: fn() {
+        arr=[1];
+        arr[0]=[0];
+        return arr;
+    }(),
+    // number of elements in self,
+    // initial size of 0
+    size: 0,
+
+    // returns true if the given key 'k' is in self.
+    // returns false otherwise.
+    contains_key: fn(self, k) {
+        search_bucket = self.hash_(k) % len(self.buckets_);
+        for (kv in self.buckets_[search_bucket]) {
+            if (kv.k == k) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // maps key 'k' to value 'v' in self, 
+    // replacing an existing 'v' for 'k' if found.
+    put: fn(self, k, v) {
+        dest_bucket = self.hash_(k) % len(self.buckets_);
+        
+        // new key case, just push into bucket
+        if (!self.contains_key(k)) {
+            self.size += 1;
+            push(self.buckets_[dest_bucket], pair_(k, v));
+            if (self.size / len(self.buckets_) >= self.RESIZE_FACTOR_) {
+                self.resize_();
+            }
+            return null;
+        }
+
+        // otherwise, replacing existing pair
+        for (i = 0; i < len(self.buckets_[dest_bucket]); i += 1) {
+            if (self.buckets_[dest_bucket][i].k == k) {
+                self.buckets_[dest_bucket][i] = pair_(k, v);
+                return null;
+            }
+        }
+
+        // since we checked contains_key, this loop should always succeed
+        error("unreachable!");
+    },
+
+    // gets the value for a given key 'k' in self.
+    // produces an error if 'k' is not in self.
+    get: fn(self, k) {
+        search_bucket = self.hash_(k) % len(self.buckets_);
+        for (kv in self.buckets_[search_bucket]) {
+            if (kv.k == k) {
+                return kv.v;
+            }
+        }
+
+        error("Key not found:", k);
+    },
+
+    // removes and returns the value for a given key 'k' from self,
+    // produces an error if 'k' is not in self.
+    remove: fn(self, k) {
+        search_bucket = self.hash_(k) % len(self.buckets_);
+        for (i = 0; i < len(self.buckets_[search_bucket]); i += 1) {
+            if (self.buckets_[search_bucket][i].k == k) {
+                removed = remove(self.buckets_[search_bucket], i);
+                self.size -= 1;
+                return removed;
+            }
+        }
+
+        error("Key not found:", k);
+    }
+
+    // internal function, doubles the number of buckets_ in self,
+    // copying old data into the new buckets_
+    resize_: fn(self) {
+
+        new_buckets_ = [len(self.buckets_) * 2];
+        for (b in [0:len(new_buckets_)]) {
+            new_buckets_[b] = [0];
+        }
+
+        for (old in self.buckets_) {
+            for (kv in old) {
+                dest_bucket = self.hash_(kv.k) % len(new_buckets_);
+                push(new_buckets_[dest_bucket], kv);
+            }
+        }
+
+        self.buckets_ = new_buckets_;
+    }
+
+    // internal function, hashes a given value.
+    // placeholder implementation, works for nums only
+    hash_: fn(k) => k,
+    // internal variable, resize factor for the hashmap
+    RESIZE_FACTOR_: 0.75
+};
+
+// tests
+
+// h = hashmap();
+// 
+// for (i in [0:250]) {
+//     h.put(i, str(i));
+// }
+// 
+// for (i in [0:250]) {
+//     if (!h.contains_key(i)) {
+//         error("didn't contain", i);
+//     }
+//     if (h.get(i) != str(i)) {
+//         error("wrong value for", i, ":", h.get(i));
+//     }
+// }
+// 
+// for (i in [0:250]) {
+//     h.remove(i);
+// }
