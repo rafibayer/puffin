@@ -228,7 +228,12 @@ where
     F: Fn(String),
 {
     f(v.iter()
-        .map(|e| e.to_string())
+        .map(|e| match e {
+            // special case for printing strings, don't include quotes.
+            // quotes are only included when string is part of another structure
+            Value::String(inner) => inner.clone(),
+            other => other.to_string()
+        })
         .collect::<Vec<String>>()
         .join(" "));
 }

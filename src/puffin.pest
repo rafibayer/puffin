@@ -1,10 +1,15 @@
+// Author: Rafael Bayer (2021)
+//
+// This file describes a PEG grammar to parse the Puffin Programming Language.
+// Specifically, this file is used by the Rust Crate "pest" to generate the parser.
+
+
 // global rules, implict whitespace, and comments.
 // both are silent, and produce no tokens
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+// Comments are anything following "//" until the end of the line
 COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
 
-// names: start with letter, followed by alphanumeric or _'s
-name = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
 // program: 0 or more statements, taking the whole file
 program = { SOI ~ statement* ~ EOI }
@@ -17,19 +22,20 @@ statement = {
     nest
 }
 
-return_statment = { "return" ~ exp }
+    return_statment = { "return" ~ exp }
 
-// assigment, can be augmented by certain operators
-assign_statment = { exp ~ aug? ~ "=" ~ exp }
-    // assigment augmentation operators
-    aug = {
-        "+" |
-        "-" |
-        "*" |
-        "/" |
-        "%" 
-    }
+    // assigment, can be augmented by certain operators
+    assign_statment = { exp ~ aug? ~ "=" ~ exp }
+        // assigment augmentation operators
+        aug = {
+            "+" |
+            "-" |
+            "*" |
+            "/" |
+            "%" 
+        }
 
+// Expressions
 exp = {
     comparison |
     paren
@@ -37,7 +43,7 @@ exp = {
 
 paren = { "(" ~ exp ~ ")" }
 
-// reverse precedence order 
+// depth first, so reverse precedence order 
 // https://en.wikipedia.org/wiki/Parsing_expression_grammar#Examples
 // https://pest.rs/book/intro.html
 comparison = _{ logical ~ (comp_op ~ (logical | paren))*}
@@ -100,6 +106,9 @@ post_op = {
 // numerical literal
 num = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 
+// names: start with letter, followed by alphanumeric or _'s
+name = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
 // structures are composed of fields
 structure = { "{" ~ fields* ~ "}"}
     fields = _{ field ~ "," ~ fields | field }
@@ -115,9 +124,10 @@ array_init = { "[" ~ (range_init | sized_init ) ~ "]" }
     range_init = { exp ~ ":" ~ exp  }
     sized_init = { exp }
 
+// null literal keyword
 null = { "null" }
 
-
+// nested block
 block = { "{" ~ statement* ~ "}"}
 
 // function definition, "fn" followed by 0 or more arg names followed by function body
@@ -134,7 +144,7 @@ nest = {
     loopnest
 }
 
-    // conditionals: ifelse or if
+    // conditionals: if else or if
     condnest = {
         if_else_block |
         if_block
