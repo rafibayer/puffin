@@ -1,6 +1,11 @@
+//! Author: Rafael Bayer (2021)
+//! The operation module defines the behavior of various operations
+//! in the Puffin language. 
 use super::*;
 
-
+/// Evaluates the infix operator op for a given left and right value.
+/// Returns an `InterpreterError::UnexpectedType` error if the op is not applicable
+/// for the given types.
 pub fn infix(op: &InfixOp, lhs: Value, rhs: Value) -> Result<Value, InterpreterError> {
     Ok(match op {
         InfixOp::Mul => {
@@ -20,12 +25,13 @@ pub fn infix(op: &InfixOp, lhs: Value, rhs: Value) -> Result<Value, InterpreterE
             Value::Num(lhs_float / rhs_float)
         },
         InfixOp::Plus => {
-            // numeric addition or string concat
             match lhs {
+                // numeric addition
                 Value::Num(lhs_float) => {
                     let rhs_float: f64 = rhs.try_into()?;
                     Value::Num(lhs_float + rhs_float)
                 },
+                // String concatenation
                 Value::String(lhs_str) => {
                     let rhs_str: String = rhs.try_into()?;
                     Value::String(lhs_str + rhs_str.as_str())
@@ -63,10 +69,7 @@ pub fn infix(op: &InfixOp, lhs: Value, rhs: Value) -> Result<Value, InterpreterE
             Value::Num((lhs == rhs) as u32 as f64)
         },
         InfixOp::Ne => {
-            if let Value::Num(bool) = infix(&InfixOp::Eq, lhs, rhs)? {
-                return Ok(Value::Num((bool == 0f64) as u32 as f64));
-            }
-            unreachable!();
+            Value::Num((lhs != rhs) as u32 as f64)
         },
         InfixOp::And => {
             let lhs_float: f64 = lhs.try_into()?;

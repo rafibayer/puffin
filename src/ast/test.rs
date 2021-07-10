@@ -1,3 +1,6 @@
+//! Author: Rafael Bayer (2021)
+//! ast module tests.
+
 #[cfg(test)]
 mod test {
     use pest::Parser;

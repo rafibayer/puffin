@@ -1,3 +1,4 @@
+//! Author: Rafael Bayer (2021)
 /*
 -----------------------------------------------------------
 Welcome to the Puffin Language Interpreter!
@@ -101,7 +102,7 @@ pub fn run(config: Config) -> Value {
     if config.show_ast {
         println!("{} ast:\n{:#?}", config.filename, &program);
     }
-    interpreter::eval(program).unwrap_or_else(|err| {
+    interpreter::eval(&program).unwrap_or_else(|err| {
         eprintln!("Runtime Error: {:#?}", err);
         process::exit(1);
     })

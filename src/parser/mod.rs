@@ -1,9 +1,8 @@
-/*!
-This module includes the definition of the PuffinParser.
-
-The PuffinParser is responsible for parsing raw string input of
-a program into the programs parse tree
-*/
+//! Author: Rafael Bayer (2021)
+//! This module includes the definition of the PuffinParser.
+//! 
+//! The PuffinParser is responsible for parsing raw string input of
+//! a program into the programs parse tree
 
 use pest::{Parser, error::Error, iterators::Pairs};
 

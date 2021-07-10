@@ -1,13 +1,24 @@
+//! Author: Rafael Bayer (2021)
+//! This module contains an implementation of the Shunting-Yard Algorithm.
+//! Shunting-Yard takes an expression written in infix notation, and outputs
+//! and expression in postfix (reverse-polish) notation.
+//!
+//! My implementation is based on the psuedo-code for the algorithm as described by
+//! wikipedia, and contains several inline comments taken directly from the article
+//! demonstrating correspondence between my code and the psuedo-code.
+
+
 use std::collections::VecDeque;
 
 use super::*;
 
-// shunting yard algorithm
-// https://en.wikipedia.org/wiki/Shunting-yard_algorithm
-// converts an expression (a list of terms) into reverse polish notation
-// according to associativity and operator precedence.
-// example: 1 + 2 * 3 => 1 2 3 * +
-pub fn to_rpn_queue<'i>(exp: &'i Exp) -> VecDeque<&'i TermKind> {
+/// shunting yard algorithm: [https://en.wikipedia.org/wiki/Shunting-yard_algorithm].
+/// 
+/// orders an infix expression (a list of terms) into reverse polish notation
+/// according to associativity and operator precedence.
+/// example: `1 + 2 * 3` => `1 2 3 * +`
+/// Returns a queue of refrences to terms in reverse polish order. 
+pub fn as_rpn_queue<'i>(exp: &'i Exp) -> VecDeque<&'i TermKind> {
     
     let mut op_stack: Vec<&TermKind> = Vec::new();
     let mut out_queue: VecDeque<&'i TermKind> = VecDeque::new();
@@ -21,8 +32,8 @@ pub fn to_rpn_queue<'i>(exp: &'i Exp) -> VecDeque<&'i TermKind> {
             // an operator o1:
             TermKind::Operator (_, assoc, prec )=> {
                 let mut o2 = op_stack.last();
-                // o1 operator case, nightmare to write as one while without while let's.
-                // consider the 2 nested if statements to all be part of the while loop
+                // o1 operator case, difficult to write cleanly as one while without `while let`.
+                // consider the 2 nested if statements to all be part of the while loop condition
                 /*
                 while (
                     there is an operator o2 other than the left parenthesis at the top
@@ -35,6 +46,8 @@ pub fn to_rpn_queue<'i>(exp: &'i Exp) -> VecDeque<&'i TermKind> {
                             // pop o2 from the operator stack into the output queue
                             out_queue.push_back(op_stack.pop().unwrap());
                             o2 = op_stack.last();
+
+                        
                         } else {
                             break;
                         }

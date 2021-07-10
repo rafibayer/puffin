@@ -1,10 +1,10 @@
-/*!
-This module contains the Puffin AST generator.
-This module converts the programs parse tree into the programs AST.
+//! Author: Rafael Bayer (2021)
+//! This module contains the Puffin AST generator.
+//! `build_program` converts the programs parse tree into the programs AST.
+//! 
+//! ast is also responsible for parsing literals, and expanding certain syntactic sugars
+//! into their full representation within the AST.
 
-ast is also responsible for parsing literals, and expanding certain syntactic sugars
-into their full representation within the AST.
-*/
 use std::{fmt::Display, vec};
 
 use crate::Rule;

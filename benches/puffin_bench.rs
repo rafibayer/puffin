@@ -1,9 +1,15 @@
+//! Author: Rafael Bayer (2021)
+//! This module contains benchmark tests for the Puffin Language.
+//! Specifically, these tests are meant to measure the speed of the interpreter,
+//! rather than the speed of the parser or AST generator.
+//! Because of this, these tests parse and build the AST as setup, only
+//! measuring the actual execution of the program itself.
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use puffin::{Parser, PuffinParser, ast, interpreter};
 
 
-
+/// Recursively compute the 15th number in the fibonacci sequence
 pub fn fib_15_recursive(c: &mut Criterion) {
     let program = 
     r"
@@ -23,10 +29,11 @@ pub fn fib_15_recursive(c: &mut Criterion) {
     let prog_ast = ast::build_program(parsed.next().unwrap()).unwrap();
 
     c.bench_function("fib 15", |b| b.iter(|| {
-        interpreter::eval(black_box(prog_ast.clone()))
+        interpreter::eval(black_box(&prog_ast))
     }));
 }
 
+/// Iteratively compute the factorial of every integer, 1 through 150 
 pub fn fact_1_150_iterative(c: &mut Criterion) {
     let program = 
     r"
@@ -48,10 +55,11 @@ pub fn fact_1_150_iterative(c: &mut Criterion) {
     let prog_ast = ast::build_program(parsed.next().unwrap()).unwrap();
 
     c.bench_function("fact 1-150", |b| b.iter(|| {
-        interpreter::eval(black_box(prog_ast.clone()))
+        interpreter::eval(black_box(&prog_ast))
     }));
 }
 
+/// Compute the first 500 prime numbers
 pub fn first_500_primes(c: &mut Criterion) {
     let program =
     r"
@@ -96,10 +104,135 @@ pub fn first_500_primes(c: &mut Criterion) {
     let prog_ast = ast::build_program(parsed.next().unwrap()).unwrap();
 
     c.bench_function("first 500 primes", |b| b.iter(|| {
-        interpreter::eval(black_box(prog_ast.clone()))
+        interpreter::eval(black_box(&prog_ast))
     }));
 
 }
 
-criterion_group!(benches, fib_15_recursive, fact_1_150_iterative, first_500_primes);
+/// Put, get, and remove 1000 key-value pairs from a 
+/// hashmap-like datastructure implemented in puffin
+pub fn puffin_hashmap_struct(c: &mut Criterion) {
+    let program = 
+    r#"
+    pair_ = fn(k, v) => {
+        k:k,
+        v:v
+    };
+    
+    hashmap = fn() => {
+    
+        buckets_: fn() {
+            arr=[1];
+            arr[0]=[0];
+            return arr;
+        }(),
+        size: 0,
+    
+        contains_key: fn(self, k) {
+            search_bucket = self.hash_(k) % len(self.buckets_);
+            for (kv in self.buckets_[search_bucket]) {
+                if (kv.k == k) {
+                    return true;
+                }
+            }
+    
+            return false;
+        }
+    
+        put: fn(self, k, v) {
+            dest_bucket = self.hash_(k) % len(self.buckets_);
+            
+            if (!self.contains_key(k)) {
+                self.size += 1;
+                push(self.buckets_[dest_bucket], pair_(k, v));
+                if (self.size / len(self.buckets_) >= self.RESIZE_FACTOR_) {
+                    self.resize_();
+                }
+                return null;
+            }
+    
+            for (i = 0; i < len(self.buckets_[dest_bucket]); i += 1) {
+                if (self.buckets_[dest_bucket][i].k == k) {
+                    self.buckets_[dest_bucket][i] = pair_(k, v);
+                    return null;
+                }
+            }
+    
+            error("unreachable!");
+        },
+    
+        get: fn(self, k) {
+            search_bucket = self.hash_(k) % len(self.buckets_);
+            for (kv in self.buckets_[search_bucket]) {
+                if (kv.k == k) {
+                    return kv.v;
+                }
+            }
+    
+            error("Key not found:", k);
+        },
+    
+        remove: fn(self, k) {
+            search_bucket = self.hash_(k) % len(self.buckets_);
+            for (i = 0; i < len(self.buckets_[search_bucket]); i += 1) {
+                if (self.buckets_[search_bucket][i].k == k) {
+                    removed = remove(self.buckets_[search_bucket], i);
+                    self.size -= 1;
+                    return removed;
+                }
+            }
+    
+            error("Key not found:", k);
+        }
+    
+        resize_: fn(self) {
+    
+            new_buckets_ = [len(self.buckets_) * 2];
+            for (b in [0:len(new_buckets_)]) {
+                new_buckets_[b] = [0];
+            }
+    
+            for (old in self.buckets_) {
+                for (kv in old) {
+                    dest_bucket = self.hash_(kv.k) % len(new_buckets_);
+                    push(new_buckets_[dest_bucket], kv);
+                }
+            }
+    
+            self.buckets_ = new_buckets_;
+        }
+    
+        hash_: fn(k) => k,
+        RESIZE_FACTOR_: 0.75
+    };
+
+    h = hashmap();
+    
+    for (i in [0:1000]) {
+        h.put(i, str(i));
+    }
+    
+    for (i in [0:1000]) {
+        if (!h.contains_key(i)) {
+            error("didn't contain", i);
+        }
+        if (h.get(i) != str(i)) {
+            error("wrong value for", i, ":", h.get(i));
+        }
+    }
+    
+    for (i in [0:1000]) {
+        h.remove(i);
+    }
+    "#;
+    let mut parsed = PuffinParser::parse(puffin::Rule::program, &program).unwrap();
+    let prog_ast = ast::build_program(parsed.next().unwrap()).unwrap();
+
+    c.bench_function("puffin hashmap 0:1000", |b| b.iter(|| {
+        interpreter::eval(black_box(&prog_ast))
+    }));
+
+}
+
+criterion_group!(benches, fib_15_recursive, fact_1_150_iterative, first_500_primes, puffin_hashmap_struct);
 criterion_main!(benches);

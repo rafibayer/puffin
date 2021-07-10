@@ -1,4 +1,10 @@
+//! Author: Rafael Bayer (2021)
+//! This module defines integration tests for the Puffin language.
+
+
 pub(crate) mod common;
+
+
 
 #[cfg(test)]
 mod test {
@@ -6,9 +12,11 @@ mod test {
     use super::common::*;
     use std::collections::HashMap;
 
-    // test programs that return values
+    /// This function is a large parameterized test that executes a large number
+    /// of Puffin programs, comparing their output to an expected value.
+    /// Test cases will fail if the output does not match, or if puffin encounters any errors.
     #[test]
-    fn test_value() {
+    fn test_programs() {
         let tests = vec![
             (r#"return 1;"#, Value::Num(1f64)),
             (r#"return "";"#, Value::String("".to_string())),
@@ -260,6 +268,122 @@ mod test {
                 "#,
                 Value::Num(720f64),
             ),
+            (
+                r#"
+                pair_ = fn(k, v) => {
+                    k:k,
+                    v:v
+                };
+                
+                hashmap = fn() => {
+                
+                    buckets_: fn() {
+                        arr=[1];
+                        arr[0]=[0];
+                        return arr;
+                    }(),
+                    size: 0,
+                
+                    contains_key: fn(self, k) {
+                        search_bucket = self.hash_(k) % len(self.buckets_);
+                        for (kv in self.buckets_[search_bucket]) {
+                            if (kv.k == k) {
+                                return true;
+                            }
+                        }
+                
+                        return false;
+                    }
+                
+                    put: fn(self, k, v) {
+                        dest_bucket = self.hash_(k) % len(self.buckets_);
+                        
+                        if (!self.contains_key(k)) {
+                            self.size += 1;
+                            push(self.buckets_[dest_bucket], pair_(k, v));
+                            if (self.size / len(self.buckets_) >= self.RESIZE_FACTOR_) {
+                                self.resize_();
+                            }
+                            return null;
+                        }
+                
+                        for (i = 0; i < len(self.buckets_[dest_bucket]); i += 1) {
+                            if (self.buckets_[dest_bucket][i].k == k) {
+                                self.buckets_[dest_bucket][i] = pair_(k, v);
+                                return null;
+                            }
+                        }
+                
+                        error("unreachable!");
+                    },
+                
+                    get: fn(self, k) {
+                        search_bucket = self.hash_(k) % len(self.buckets_);
+                        for (kv in self.buckets_[search_bucket]) {
+                            if (kv.k == k) {
+                                return kv.v;
+                            }
+                        }
+                
+                        error("Key not found:", k);
+                    },
+                
+                    remove: fn(self, k) {
+                        search_bucket = self.hash_(k) % len(self.buckets_);
+                        for (i = 0; i < len(self.buckets_[search_bucket]); i += 1) {
+                            if (self.buckets_[search_bucket][i].k == k) {
+                                removed = remove(self.buckets_[search_bucket], i);
+                                self.size -= 1;
+                                return removed;
+                            }
+                        }
+                
+                        error("Key not found:", k);
+                    }
+                
+                    resize_: fn(self) {
+                
+                        new_buckets_ = [len(self.buckets_) * 2];
+                        for (b in [0:len(new_buckets_)]) {
+                            new_buckets_[b] = [0];
+                        }
+                
+                        for (old in self.buckets_) {
+                            for (kv in old) {
+                                dest_bucket = self.hash_(kv.k) % len(new_buckets_);
+                                push(new_buckets_[dest_bucket], kv);
+                            }
+                        }
+                
+                        self.buckets_ = new_buckets_;
+                    }
+                
+                    hash_: fn(k) => k,
+                    RESIZE_FACTOR_: 0.75
+                };
+                
+            
+                h = hashmap();
+                
+                for (i in [0:250]) {
+                    h.put(i, str(i));
+                }
+                
+                for (i in [0:250]) {
+                    if (!h.contains_key(i)) {
+                        error("didn't contain", i);
+                    }
+                    if (h.get(i) != str(i)) {
+                        error("wrong value for", i, ":", h.get(i));
+                    }
+                }
+                
+                for (i in [0:250]) {
+                    h.remove(i);
+                }
+                "#,
+                Value::Null
+            )
         ];
 
         for (program, output) in tests {

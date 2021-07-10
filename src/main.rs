@@ -1,6 +1,13 @@
+//! Author: Rafael Bayer (2021)
+//! Main Entrypoint of the Puffin Interpreter Binary
+
 use puffin::{interpreter::value::Value, repl};
 use std::{env, process};
 
+/// Main with no arguments begins a Puffin REPL session.
+/// If a filepath is passed, the interpreter will instead execute the contained program,
+/// outputting a non-null top-level return to stdout. The interpreter program will terminate
+/// when the program does.
 fn main() {
     let args: Vec<String> = env::args().collect();
     

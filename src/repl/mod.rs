@@ -52,6 +52,7 @@ pub fn start_repl() -> ! {
 
 /// reads line from stdin into buffer, returning number of bytes read
 fn readline(buffer: &mut String) -> usize {
+    // Display input prompt based on state of buffer
     if !buffer.is_empty() {
         print!("... ");
     } else {

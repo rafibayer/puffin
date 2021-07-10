@@ -1,28 +1,36 @@
-/*!
-This module contains definitons for all AST nodes.
-The root node is the struct Program, 
-which contains a vector of all the programs statements
-*/
+//! Author: Rafael Bayer (2021)
+//! This module contains definitons for all AST nodes.
+//! The root node is the struct Program, 
+//! which contains a vector of all the programs statements
 
 
+/// AST Root node, the program contains several statements
 #[derive(Debug, Clone, PartialEq)]
 pub struct Program {
     pub program: Vec<Statement>,
 }
 
+/// Statement Node, contains one of several kinds of statements
 #[derive(Debug, Clone, PartialEq)]
 pub struct Statement {
     pub statement: StatementKind,
 }
 
+/// StatementKind, variants represent types of puffin statements
 #[derive(Debug, Clone, PartialEq)]
 pub enum StatementKind {
+    /// Explicit Return Statement, returns an expression
     Return(Exp),
+    /// Assigment statement, assigns lhs to rhs
     Assign { lhs: Assingnable, rhs: Exp },
+    /// Expression statement
     Exp(Exp),
+    /// Nest statement, conditional or loop
     Nest(NestKind),
 }
 
+/// Assignable, name to bind to, and possibly sub-assignables
+/// like structure fields or array indexes
 #[derive(Debug, Clone, PartialEq)]
 pub struct Assingnable {
     pub name: String,

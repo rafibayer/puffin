@@ -1,3 +1,8 @@
+//! Author: Rafael Bayer (2021)
+//! 
+//! This module contains helper lookup functions to convert between 
+//! strings and operator AST nodes.
+
 use cached::proc_macro::cached;
 use super::node::*;
 use super::ASTError;
