@@ -178,8 +178,8 @@ fn eval_call(
             // if the function was named, bind its name to itself to allow recursion
             if let ClosureKind::Named(name) = kind {
                 subenv.borrow_mut().bind(name, callable.clone())?;
-            // if the function was a reciever of a structure, bind the structure to "self"
-            } else if let ClosureKind::Reciever(structure) = kind {
+            // if the function was a receiver of a structure, bind the structure to "self"
+            } else if let ClosureKind::Receiver(structure) = kind {
                 subenv
                     .borrow_mut()
                     .bind("self", Value::Structure(structure.clone()))?;
@@ -280,12 +280,12 @@ fn eval_value(
                     ..
                 } = &field_value
                 {
-                    // if it is, the closure is a reciever of the structure
+                    // if it is, the closure is a receiver of the structure
                     if args.first() == Some(&"self".to_string()) {
                         // take out the "self" argument, leaving the remaining args
                         let other_args: Vec<String> = args[1..].to_vec();
                         field_value = Value::Closure {
-                            kind: ClosureKind::Reciever(map.clone()),
+                            kind: ClosureKind::Receiver(map.clone()),
                             args: other_args,
                             block: block.clone(),
                             environment: environment.clone(),
@@ -353,7 +353,7 @@ fn eval_block(
 }
 
 fn eval_assign(
-    lhs: &Assingnable,
+    lhs: &Assignable,
     rhs: &Exp,
     env: &Rc<RefCell<Environment>>,
 ) -> Result<Value, InterpreterError> {

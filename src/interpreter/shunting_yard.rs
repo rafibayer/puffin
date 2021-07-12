@@ -17,7 +17,7 @@ use super::*;
 /// orders an infix expression (a list of terms) into reverse polish notation
 /// according to associativity and operator precedence.
 /// example: `1 + 2 * 3` => `1 2 3 * +`
-/// Returns a queue of refrences to terms in reverse polish order. 
+/// Returns a queue of references to terms in reverse polish order. 
 pub fn as_rpn_queue<'i>(exp: &'i Exp) -> VecDeque<&'i TermKind> {
     
     let mut op_stack: Vec<&TermKind> = Vec::new();

@@ -1,6 +1,6 @@
 // Author: Rafael Bayer (2021)
 // sample program demonstrating a basic hashmap implementation in puffin.
-// makes use of structures and recievers, constructor functions, and more.
+// makes use of structures and receiver, constructor functions, and more.
 //
 // note: in this file, a name ending with '_' (for example 'buckets_') is meant to denote
 // that the variable or function is 'private' and not meant to be called or used externally.

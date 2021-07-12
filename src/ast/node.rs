@@ -22,7 +22,7 @@ pub enum StatementKind {
     /// Explicit Return Statement, returns an expression
     Return(Exp),
     /// Assigment statement, assigns lhs to rhs
-    Assign { lhs: Assingnable, rhs: Exp },
+    Assign { lhs: Assignable, rhs: Exp },
     /// Expression statement
     Exp(Exp),
     /// Nest statement, conditional or loop
@@ -32,7 +32,7 @@ pub enum StatementKind {
 /// Assignable, name to bind to, and possibly sub-assignables
 /// like structure fields or array indexes
 #[derive(Debug, Clone, PartialEq)]
-pub struct Assingnable {
+pub struct Assignable {
     pub name: String,
     pub assignable: Vec<AssignableKind>,
 }
@@ -46,7 +46,6 @@ pub enum AssignableKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Exp {
     pub exp: Vec<TermKind>,
-    pub line: usize,
 }
 
 type Precedence = usize;

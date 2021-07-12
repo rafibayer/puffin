@@ -73,7 +73,7 @@ println(user.contact);
 // {github: github.com/rafibayer, linkedin: linkedin.com/in/rafael-bayer, email: rafibayer7@gmail.com} 
 ```
 
-Structures may also define "reciever" functions (think Golang) that implicitly take themselves as the first argument. This is done by making `self` the first argument to a function defined as a structure field. Here is an example structure that can be used to store odd and even numbers seperately. We use a lambda to act as a constructor so we could make many of these easily.
+Structures may also define "receiver" functions (think Golang) that implicitly take themselves as the first argument. This is done by making `self` the first argument to a function defined as a structure field. Here is an example structure that can be used to store odd and even numbers seperately. We use a lambda to act as a constructor so we could make many of these easily.
 
 ```rs
 new_odd_even = fn() => {

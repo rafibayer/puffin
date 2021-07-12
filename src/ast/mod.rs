@@ -77,8 +77,6 @@ fn build_return(return_statement: Pair<Rule>) -> Result<Statement, ASTError> {
 
 /// `Rule: assign_statment`
 fn build_assign(assign_statement: Pair<Rule>) -> Result<Statement, ASTError> {
-    let line = assign_statement.as_span().start_pos().line_col().0;
-
     let mut inner = get_inner(assign_statement);
     // regular assigmnet statements have 2 children:
     //      c1 = c2
@@ -103,7 +101,6 @@ fn build_assign(assign_statement: Pair<Rule>) -> Result<Statement, ASTError> {
                 exp: vec![TermKind::Value(ValueKind::Paren(Box::new(build_exp(
                     inner.remove(0),
                 )?)))],
-                line,
             };
 
             rhs.exp.insert(0, aug);
@@ -131,7 +128,7 @@ fn build_assign(assign_statement: Pair<Rule>) -> Result<Statement, ASTError> {
 // takes an expression of the form:
 // <name> <assignable>*
 // where assignable is either a structure field access ( e.g. ".name") or array access ( e.g. "[5]")
-fn build_assignable(assignable: Pair<Rule>) -> Result<Assingnable, ASTError> {
+fn build_assignable(assignable: Pair<Rule>) -> Result<Assignable, ASTError> {
     // value
     let mut inner = get_inner(assignable);
 
@@ -157,7 +154,7 @@ fn build_assignable(assignable: Pair<Rule>) -> Result<Assingnable, ASTError> {
         });
     }
 
-    Ok(Assingnable {
+    Ok(Assignable {
         name,
         assignable: assignable_vec,
     })
@@ -281,7 +278,6 @@ fn build_name(name: Pair<Rule>) -> Result<String, ASTError> {
 /// the appropriate TermKind, which in turn contains the Operator enum
 /// with data about the operators kind, associativity, and precedence
 fn build_exp(exp: Pair<Rule>) -> Result<Exp, ASTError> {
-    let line = exp.as_span().start_pos().line_col().0;
     let mut inner = get_inner(exp);
     let mut terms = Vec::with_capacity(inner.len());
 
@@ -304,7 +300,7 @@ fn build_exp(exp: Pair<Rule>) -> Result<Exp, ASTError> {
         });
     }
 
-    Ok(Exp { exp: terms, line })
+    Ok(Exp { exp: terms })
 }
 
 /// `rule: value`

@@ -48,8 +48,8 @@ pub enum Value {
 pub enum ClosureKind {
     /// Anonymous, not assigned to a name
     Anonymous,
-    /// Structure reciever, holds refrence to structure which will be implict first argument
-    Reciever(Rc<RefCell<HashMap<String, Value>>>),
+    /// Structure receiver, holds reference to structure which will be implicit first argument
+    Receiver(Rc<RefCell<HashMap<String, Value>>>),
     /// Named function, name bound to closure in closures environment
     Named(String),
 }
@@ -80,7 +80,7 @@ impl Display for Value {
                 if let ClosureKind::Named(name) = &kind {
                     // named function
                     return write!(f, "<{} fn({})> ", name, argstr);
-                } else if let ClosureKind::Reciever(_) = &kind {
+                } else if let ClosureKind::Receiver(_) = &kind {
                     return write!(f, "<(self) fn({})>", argstr);
                 }
                 // anonymous function/lambda
@@ -94,7 +94,7 @@ impl Display for Value {
 }
 
 /// safely stringify's the contents of a puffin `Array`.
-/// checks for circular refrences, replacing them with a constant string
+/// checks for circular references, replacing them with a constant string
 // todo: possible to make this generic and combine with method below?
 pub fn stringify_array(array: &Rc<RefCell<Vec<Value>>>, seen: &mut HashSet<usize>) -> String {
     seen.insert(array.as_ptr() as usize);
@@ -126,7 +126,7 @@ pub fn stringify_array(array: &Rc<RefCell<Vec<Value>>>, seen: &mut HashSet<usize
 }
 
 /// safely stringify's the contents of a puffin `Structure`.
-/// checks for circular refrences, replacing them with a constant string
+/// checks for circular references, replacing them with a constant string
 pub fn stringify_struct(
     structure: &Rc<RefCell<HashMap<String, Value>>>,
     seen: &mut HashSet<usize>,
