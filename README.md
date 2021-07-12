@@ -1,6 +1,8 @@
 
 # `Puffin`
-A simple, dynamic language interpreter written in Rust.
+A simple, dynamic language interpreter written in Rust.  
+
+[Blog Post](https://rafibayer.github.io/Puffin/)
 
 # Code Sample
 
