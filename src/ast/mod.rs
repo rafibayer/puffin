@@ -57,8 +57,8 @@ pub fn build_statement(statement: Pair<Rule>) -> Result<Statement, ASTError> {
     let child = get_one(statement)?;
 
     match child.as_rule() {
-        Rule::return_statment => build_return(child),
-        Rule::assign_statment => build_assign(child),
+        Rule::return_statement => build_return(child),
+        Rule::assign_statement => build_assign(child),
         Rule::exp => Ok(Statement {
             statement: StatementKind::Exp(build_exp(child)?),
         }),
@@ -75,7 +75,7 @@ fn build_return(return_statement: Pair<Rule>) -> Result<Statement, ASTError> {
     })
 }
 
-/// `Rule: assign_statment`
+/// `Rule: assign_statement`
 fn build_assign(assign_statement: Pair<Rule>) -> Result<Statement, ASTError> {
     let mut inner = get_inner(assign_statement);
     // regular assigmnet statements have 2 children:
@@ -237,7 +237,7 @@ fn build_loopnest(loopnest: Pair<Rule>) -> Result<LoopNestKind, ASTError> {
             // "adv" (usually the i++ part) of the loop can be either an expression, or an assignment.
             // either way, we wrap it in a statement
             let adv = match for_parts[0].as_rule() {
-                Rule::assign_statment => build_assign(for_parts.remove(0))?,
+                Rule::assign_statement => build_assign(for_parts.remove(0))?,
                 Rule::exp => Statement {
                     statement: StatementKind::Exp(build_exp(for_parts.remove(0))?),
                 },

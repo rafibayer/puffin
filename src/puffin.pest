@@ -4,7 +4,7 @@
 // Specifically, this file is used by the Rust Crate "pest" to generate the parser.
 
 
-// global rules, implict whitespace, and comments.
+// global rules, implicit whitespace, and comments.
 // both are silent, and produce no tokens
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 // Comments are anything following "//" until the end of the line
@@ -16,17 +16,17 @@ program = { SOI ~ statement* ~ EOI }
 
 // statement: returns, assigns, expressions, or nests
 statement = {
-    return_statment ~ ";" |
-    assign_statment ~ ";" |
+    return_statement ~ ";" |
+    assign_statement ~ ";" |
     exp ~ ";" |
     nest
 }
 
-    return_statment = { "return" ~ exp }
+    return_statement = { "return" ~ exp }
 
-    // assigment, can be augmented by certain operators
-    assign_statment = { exp ~ aug? ~ "=" ~ exp }
-        // assigment augmentation operators
+    // assignment, can be augmented by certain operators
+    assign_statement = { exp ~ aug? ~ "=" ~ exp }
+        // assignment augmentation operators
         aug = {
             "+" |
             "-" |
@@ -164,6 +164,6 @@ nest = {
         // for-in/foreach
         for_in_block = { "for" ~ "(" ~ name ~ "in" ~ exp ~ ")" ~ block }
         // traditional C-style for-loop
-        for_block = { ("for" ~ "(" ~ statement ~ exp ~ ";" ~ (assign_statment | exp) ~ ")" ~ block) }
+        for_block = { ("for" ~ "(" ~ statement ~ exp ~ ";" ~ (assign_statement | exp) ~ ")" ~ block) }
 
 

@@ -88,7 +88,7 @@ mod test {
         let tests = vec![r"return 5", r"return arr[5]", r"return arr[5] + 5"];
 
         for test in tests {
-            let pairs = PuffinParser::parse(Rule::return_statment, test).expect(test);
+            let pairs = PuffinParser::parse(Rule::return_statement, test).expect(test);
             let last = pairs.last().unwrap();
             assert_eq!(last.as_span().end_pos().pos(), test.len(), "{}", test);
         }
@@ -105,7 +105,7 @@ mod test {
         ];
 
         for test in tests {
-            let pairs = PuffinParser::parse(Rule::assign_statment, test).expect(test);
+            let pairs = PuffinParser::parse(Rule::assign_statement, test).expect(test);
             let last = pairs.last().unwrap();
             assert_eq!(last.as_span().end_pos().pos(), test.len(), "{}", test);
         }
