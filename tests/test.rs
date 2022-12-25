@@ -1,10 +1,7 @@
 //! Author: Rafael Bayer (2021)
 //! This module defines integration tests for the Puffin language.
 
-
 pub(crate) mod common;
-
-
 
 #[cfg(test)]
 mod test {
@@ -18,6 +15,11 @@ mod test {
     #[test]
     fn test_programs() {
         let tests = vec![
+            (r#"return typeof(1) == typeof(2);"#, Value::Num(1f64)),
+            (r#"return typeof(1) == NUM;"#, Value::Num(1f64)),
+            (r#"return typeof(1) == typeof("mystr");"#, Value::Num(0f64)),
+            (r#"return typeof(1) == STRING;"#, Value::Num(0f64)),
+            (r#"return typeof(null) == NULL;"#, Value::Num(1f64)),
             (r#"return 1;"#, Value::Num(1f64)),
             (r#"return "";"#, Value::String("".to_string())),
             (
@@ -382,8 +384,8 @@ mod test {
                     h.remove(i);
                 }
                 "#,
-                Value::Null
-            )
+                Value::Null,
+            ),
         ];
 
         for (program, output) in tests {

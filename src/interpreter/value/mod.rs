@@ -1,5 +1,5 @@
 //! Author: Rafael Bayer (2021)
-//! The value module defines types and functions relating to 
+//! The value module defines types and functions relating to
 //! values in the `puffin` programming language. This includes the
 //! `Value` enum, that acts as the underlying container for all types.
 
@@ -41,6 +41,7 @@ pub enum Value {
     },
     /// Puffin Builtin function
     Builtin(Builtin),
+    Type(String),
 }
 
 /// ClosureKind defines the type of a `puffin` closure
@@ -68,7 +69,7 @@ impl Display for Value {
                     return write!(f, "{}", s);
                 }
                 write!(f, "\'{}\'", s)
-            },
+            }
             Value::Array(v) => {
                 write!(f, "{}", stringify_array(v, &mut HashSet::new()))
             }
@@ -88,6 +89,9 @@ impl Display for Value {
             }
             Value::Builtin(b) => {
                 write!(f, "{:?}", b)
+            }
+            Value::Type(t) => {
+                write!(f, "<type {t}>")
             }
         }
     }
@@ -160,9 +164,8 @@ pub fn stringify_struct(
 }
 
 impl TryInto<f64> for Value {
-    
     type Error = InterpreterError;
-    
+
     /// Converts a Num `Value` into an f64.
     /// Returns an interpreter error of the value is not the correct variant.
     fn try_into(self) -> Result<f64, Self::Error> {

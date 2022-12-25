@@ -2,14 +2,15 @@
 //! The builtin module defines builtin functions and values in Puffin
 
 use rand;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::io;
 use std::rc::Rc;
+use std::{cell::RefCell, vec};
 
+use super::{ClosureKind, Environment, Value};
+use crate::ast::node::Block;
 use crate::interpreter::{unexpected_type, InterpreterError};
-use super::Value;
 
 /// Builtin wraps a name and a builtin function body
 pub struct Builtin {
@@ -129,8 +130,8 @@ pub fn get_builtins() -> HashMap<String, Value> {
             "pow",
             Value::Builtin(Builtin {
                 name: "pow",
-                body: builtin_pow
-            })
+                body: builtin_pow,
+            }),
         ),
         (
             "input_str",
@@ -162,17 +163,17 @@ pub fn get_builtins() -> HashMap<String, Value> {
         ),
         (
             "remove",
-            Value::Builtin(Builtin{
+            Value::Builtin(Builtin {
                 name: "remove",
                 body: builtin_remove,
-            })
+            }),
         ),
         (
             "insert",
-            Value::Builtin(Builtin{
+            Value::Builtin(Builtin {
                 name: "insert",
                 body: builtin_insert,
-            })
+            }),
         ),
         (
             "rand",
@@ -180,6 +181,47 @@ pub fn get_builtins() -> HashMap<String, Value> {
                 name: "rand",
                 body: builtin_rand,
             }),
+        ),
+        (
+            "typeof",
+            Value::Builtin(Builtin {
+                name: "typeof",
+                body: builtin_typeof,
+            }),
+        ),
+        // type consts
+        ("NULL", builtin_typeof(vec![Value::Null]).unwrap()),
+        ("NUM", builtin_typeof(vec![Value::Num(0f64)]).unwrap()),
+        (
+            "STRING",
+            builtin_typeof(vec![Value::String(String::new())]).unwrap(),
+        ),
+        ("ARRAY", builtin_typeof(vec![Value::from(vec![])]).unwrap()),
+        (
+            "STRUCT",
+            builtin_typeof(vec![Value::from(HashMap::new())]).unwrap(),
+        ),
+        (
+            "CLOSURE",
+            builtin_typeof(vec![Value::Closure {
+                kind: ClosureKind::Anonymous,
+                args: vec![],
+                block: Block { block: vec![] },
+                environment: Rc::new(RefCell::new(Environment::empty())),
+            }])
+            .unwrap(),
+        ),
+        (
+            "BUILTIN",
+            builtin_typeof(vec![Value::Builtin(Builtin {
+                name: "builtin",
+                body: |_| Ok(Value::Null),
+            })])
+            .unwrap(),
+        ),
+        (
+            "TYPE",
+            builtin_typeof(vec![Value::Type(String::new())]).unwrap(),
         ),
     ];
     builtins
@@ -211,7 +253,7 @@ fn builtin_print(v: Vec<Value>) -> Result<Value, InterpreterError> {
     Ok(Value::Null)
 }
 
-/// v: 
+/// v:
 fn builtin_println(v: Vec<Value>) -> Result<Value, InterpreterError> {
     output(v, |e| println!("{}", e));
     Ok(Value::Null)
@@ -232,7 +274,7 @@ where
             // special case for printing strings, don't include quotes.
             // quotes are only included when string is part of another structure
             Value::String(inner) => inner.clone(),
-            other => other.to_string()
+            other => other.to_string(),
         })
         .collect::<Vec<String>>()
         .join(" "));
@@ -279,7 +321,6 @@ fn builtin_input(v: Vec<Value>, input_type: InputType) -> Result<Value, Interpre
             let parsed: f64 = if let Ok(n) = buf.parse() {
                 n
             } else {
-                
                 return Err(InterpreterError::IOError(
                     "Failed to parse number".to_string(),
                 ));
@@ -288,7 +329,7 @@ fn builtin_input(v: Vec<Value>, input_type: InputType) -> Result<Value, Interpre
             Value::Num(parsed)
         }
     })
-} 
+}
 
 /// Push `b` onto array `a`
 fn builtin_push(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
@@ -304,7 +345,7 @@ fn builtin_push(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
 fn builtin_pop(v: Vec<Value>) -> Result<Value, InterpreterError> {
     let array: Rc<RefCell<Vec<Value>>> = get_one(v)?.try_into()?;
     if array.borrow().len() == 0 {
-        return Err(InterpreterError::BoundsError{ index: 0, size: 0 })
+        return Err(InterpreterError::BoundsError { index: 0, size: 0 });
     }
     let removed = array.borrow_mut().pop().unwrap();
     Ok(removed)
@@ -317,8 +358,11 @@ fn builtin_remove(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
     let index_float: f64 = v.pop().unwrap().try_into()?;
     let index = index_float as usize;
     let array: Rc<RefCell<Vec<Value>>> = v.pop().unwrap().try_into()?;
-    if index >= array.borrow().len()  {
-        return Err(InterpreterError::BoundsError { index, size: array.borrow().len() })
+    if index >= array.borrow().len() {
+        return Err(InterpreterError::BoundsError {
+            index,
+            size: array.borrow().len(),
+        });
     }
 
     let removed = array.borrow_mut().remove(index);
@@ -337,7 +381,10 @@ fn builtin_insert(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
     let array: Rc<RefCell<Vec<Value>>> = v.pop().unwrap().try_into()?;
 
     if index > array.borrow().len() {
-        return Err(InterpreterError::BoundsError { index, size: array.borrow().len() })
+        return Err(InterpreterError::BoundsError {
+            index,
+            size: array.borrow().len(),
+        });
     }
 
     array.borrow_mut().insert(index, value);
@@ -345,11 +392,31 @@ fn builtin_insert(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
     Ok(Value::Null)
 }
 
-
 /// Return a random number in [0, 1)
 fn builtin_rand(v: Vec<Value>) -> Result<Value, InterpreterError> {
     expect_args(0, &v)?;
     Ok(Value::Num(rand::random()))
+}
+
+fn builtin_typeof(v: Vec<Value>) -> Result<Value, InterpreterError> {
+    Ok(Value::Type(
+        (match get_one(v)? {
+            Value::Null => "null",
+            Value::Num(_) => "num",
+            Value::String(_) => "string",
+            Value::Array(_) => "array",
+            Value::Structure(_) => "struct",
+            Value::Closure {
+                kind: _,
+                args: _,
+                block: _,
+                environment: _,
+            } => "closure",
+            Value::Builtin(_) => "builtin",
+            Value::Type(_) => "type",
+        })
+        .into(),
+    ))
 }
 
 /// Gets exactly 1 argument from v
@@ -358,7 +425,6 @@ fn get_one(mut v: Vec<Value>) -> Result<Value, InterpreterError> {
     expect_args(1, &v)?;
     Ok(v.pop().unwrap())
 }
-
 
 /// Checks that v has exactly the expect number of elements, returning
 /// and InterpreterError otherwise
